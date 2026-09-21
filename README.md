@@ -1,8 +1,9 @@
 # Trabajo Tarjeta 2026
 
 ## Integrantes del grupo
- - Apellido y nombre
- - Apellido y nombre
+ - Paz Reyes Nicolas
+ - Moloeznik Martin
+ - Mamani Luca
 
 ## Aclaraciones
 El siguiente trabajo es un enunciado iterativo. Regularmente se ampliará y/o modificará el enunciado.
