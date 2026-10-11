@@ -3,6 +3,7 @@ namespace TarjetaSUBE;
 public class Tarjeta
 {
     public const decimal SaldoMaximo = 40000m;
+    public const decimal SaldoMinimo = -2000m;
 
     public static readonly decimal[] CargasAceptadas =
     [

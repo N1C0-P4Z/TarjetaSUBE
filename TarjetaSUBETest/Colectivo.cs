@@ -85,15 +85,17 @@ public class ColectivoTests
     }
 
     [Test]
-    public void PagarCon_LanzaExcepcion_CuandoNoHaySaldoSuficiente()
+    public void PagarCon_LanzaExcepcion_CuandoNoHaySaldoSuficiente2()
     {
         var tarjeta = Tarjeta.Crear();
+        tarjeta.Saldo = -Colectivo.Tarifa;
+        _db.SaveChanges();
         var colectivo = Colectivo.Crear(101);
 
         Assert.That(
             () => colectivo.PagarCon(tarjeta),
             Throws.TypeOf<ArgumentException>());
-        Assert.That(tarjeta.Saldo, Is.EqualTo(0m));
+        Assert.That(tarjeta.Saldo, Is.EqualTo(-Colectivo.Tarifa));
         Assert.That(_db.Boletos.Count(), Is.EqualTo(0));
     }
 
@@ -106,5 +108,33 @@ public class ColectivoTests
         Assert.That(
             () => colectivo.PagarCon(tarjeta),
             Throws.TypeOf<ArgumentException>());
+    }
+
+
+    [Test]
+    public void PagarCon_PermiteViajarConSaldoCeroQuedandoEnNegativo()
+    {
+        var tarjeta = Tarjeta.Crear();
+        var colectivo = Colectivo.Crear(101);
+
+        var boleto = colectivo.PagarCon(tarjeta);
+
+        Assert.That(boleto.Id, Is.Not.EqualTo(0));
+        Assert.That(boleto.Monto, Is.EqualTo(Colectivo.Tarifa));
+        Assert.That(tarjeta.Saldo, Is.EqualTo(-Colectivo.Tarifa));
+        Assert.That(boleto.SaldoRestante, Is.EqualTo(tarjeta.Saldo));
+        Assert.That(_db.Boletos.Count(), Is.EqualTo(1));
+    }
+
+    [Test]
+    public void PagarConSaldoCeroYCargar2000()
+    {
+        var tarjeta = Tarjeta.Crear();
+        var colectivo = Colectivo.Crear(101);
+
+        colectivo.PagarCon(tarjeta);
+        tarjeta.Cargar(2000);
+
+        Assert.That(tarjeta.Saldo, Is.EqualTo(420m));
     }
 }
