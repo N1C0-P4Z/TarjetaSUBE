@@ -24,13 +24,13 @@ public class Colectivo
         return colectivo;
     }
 
-    public Boleto PagarCon(Tarjeta tarjeta)
+    public Boleto? PagarCon(Tarjeta tarjeta)
     {
         var tarjetaGuardada = Contexto.Db.Tarjetas.Find(tarjeta.Id)
             ?? throw new ArgumentException("La tarjeta no existe.");
 
-        if (tarjetaGuardada.Saldo < Tarifa)
-            throw new ArgumentException("Saldo insuficiente. No se permite saldo negativo.");
+        if ((tarjetaGuardada.Saldo - Tarifa) < Tarjeta.SaldoMinimo)
+            throw new ArgumentException("Saldo insuficiente.");
 
         tarjetaGuardada.Saldo -= Tarifa;
 
