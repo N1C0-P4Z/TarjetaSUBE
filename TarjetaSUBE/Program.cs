@@ -1,6 +1,7 @@
 using TarjetaSUBE;
 
 Contexto.Db.Database.EnsureCreated();
+TarjetaTipo.Sembrar();
 
 var salir = false;
 while (!salir)
@@ -58,14 +59,19 @@ void MostrarMenu()
 
 void CrearTarjeta()
 {
-    var tarjeta = Tarjeta.Crear();
-    Console.WriteLine($"Tarjeta #{tarjeta.Id} creada. Saldo: {tarjeta.Saldo:C}");
+    foreach (var tipo in TarjetaTipo.Listar())
+        Console.WriteLine($"{tipo.Id} - {tipo.Nombre}");
+
+    Console.Write("Id del tipo: ");
+    var tipoId = Convert.ToInt32(Console.ReadLine());
+    var tarjeta = Tarjeta.Crear(tipoId);
+    Console.WriteLine($"Tarjeta #{tarjeta.Id} creada ({tarjeta.TarjetaTipo?.Nombre}). Saldo: {tarjeta.Saldo:C}");
 }
 
 void CargarTarjeta()
 {
     foreach (var existente in Tarjeta.Listar())
-        Console.WriteLine($"#{existente.Id} - Saldo: {existente.Saldo:C}");
+        Console.WriteLine($"#{existente.Id} - {existente.TarjetaTipo?.Nombre} - Saldo: {existente.Saldo:C}");
 
     Console.Write("Id de la tarjeta: ");
     var id = Convert.ToInt32(Console.ReadLine());
@@ -99,7 +105,7 @@ void PagarViaje()
         ?? throw new ArgumentException("El colectivo no existe.");
 
     foreach (var existenteTarjeta in Tarjeta.Listar())
-        Console.WriteLine($"#{existenteTarjeta.Id} - Saldo: {existenteTarjeta.Saldo:C}");
+        Console.WriteLine($"#{existenteTarjeta.Id} - {existenteTarjeta.TarjetaTipo?.Nombre} - Saldo: {existenteTarjeta.Saldo:C}");
 
     Console.Write("Id de la tarjeta: ");
     var tarjetaId = Convert.ToInt32(Console.ReadLine());
