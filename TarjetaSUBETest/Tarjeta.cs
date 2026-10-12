@@ -31,6 +31,7 @@ public class TarjetaTests
 
         Assert.That(tarjeta.Id, Is.Not.EqualTo(0));
         Assert.That(tarjeta.Saldo, Is.EqualTo(0m));
+        Assert.That(tarjeta.TarjetaTipo!.Nombre, Is.EqualTo("Normal"));
         Assert.That(_db.Tarjetas.Find(tarjeta.Id), Is.Not.Null);
     }
 
@@ -99,5 +100,22 @@ public class TarjetaTests
         var resultado = Tarjeta.Listar();
 
         Assert.That(resultado, Has.Count.EqualTo(2));
+    }
+
+    [Test]
+    public void Crear_LanzaExcepcion_CuandoElTipoNoExiste()
+    {
+        Assert.That(
+            () => Tarjeta.Crear(999),
+            Throws.TypeOf<ArgumentException>());
+    }
+
+    [Test]
+    public void CalcularPrecioPasaje_TomaLaProporcionDelTipo()
+    {
+        var medio = TarjetaTipo.Crear("Medio boleto estudiantil", 0.5m);
+        var tarjeta = Tarjeta.Crear(medio.Id);
+
+        Assert.That(tarjeta.CalcularPrecioPasaje(Colectivo.Tarifa), Is.EqualTo(Colectivo.Tarifa / 2));
     }
 }
