@@ -110,6 +110,41 @@ public class ColectivoTests
             Throws.TypeOf<ArgumentException>());
     }
 
+    [Test]
+    public void PagarCon_FranquiciaCompletaSiemprePuedePagar()
+    {
+        var tipo = TarjetaTipo.Crear("Franquicia completa", 0m);
+        var tarjeta = Tarjeta.Crear(tipo.Id);
+        var colectivo = Colectivo.Crear(101);
+
+        var primero = colectivo.PagarCon(tarjeta);
+        var segundo = colectivo.PagarCon(tarjeta);
+
+        Assert.That(primero.Monto, Is.EqualTo(0m));
+        Assert.That(segundo.Monto, Is.EqualTo(0m));
+        Assert.That(tarjeta.Saldo, Is.EqualTo(0m));
+        Assert.That(_db.Boletos.Count(), Is.EqualTo(2));
+    }
+
+    [Test]
+    public void PagarCon_MedioBoletoCobraSiempreLaMitadDelNormal()
+    {
+        var normal = TarjetaTipo.Crear("Normal", 1m);
+        var medio = TarjetaTipo.Crear("Medio boleto estudiantil", 0.5m);
+        var tarjetaNormal = Tarjeta.Crear(normal.Id);
+        var tarjetaMedio = Tarjeta.Crear(medio.Id);
+        tarjetaNormal.Cargar(5000);
+        tarjetaMedio.Cargar(5000);
+        var colectivo = Colectivo.Crear(142);
+
+        var boletoNormal = colectivo.PagarCon(tarjetaNormal);
+        var primerMedio = colectivo.PagarCon(tarjetaMedio);
+        var segundoMedio = colectivo.PagarCon(tarjetaMedio);
+
+        Assert.That(primerMedio.Monto, Is.EqualTo(boletoNormal.Monto / 2));
+        Assert.That(segundoMedio.Monto, Is.EqualTo(boletoNormal.Monto / 2));
+        Assert.That(tarjetaMedio.Saldo, Is.EqualTo(5000m - Colectivo.Tarifa));
+    }
 
     [Test]
     public void PagarCon_PermiteViajarConSaldoCeroQuedandoEnNegativo()
