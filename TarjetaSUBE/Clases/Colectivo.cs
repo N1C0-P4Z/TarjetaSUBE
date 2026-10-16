@@ -33,7 +33,9 @@ public class Colectivo
             .FirstOrDefault(t => t.Id == tarjeta.Id)
             ?? throw new ArgumentException("La tarjeta no existe.");
 
-        if ((tarjetaGuardada.Saldo - Tarifa) < Tarjeta.SaldoMinimo)
+        var monto = tarjetaGuardada.CalcularPrecioPasaje(Tarifa);
+
+        if (tarjetaGuardada.Saldo - monto < Tarjeta.SaldoMinimo)
             throw new ArgumentException("Saldo insuficiente.");
 
         tarjetaGuardada.Saldo -= monto;

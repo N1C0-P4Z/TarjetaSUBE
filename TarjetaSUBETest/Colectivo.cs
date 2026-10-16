@@ -144,6 +144,7 @@ public class ColectivoTests
         Assert.That(primerMedio.Monto, Is.EqualTo(boletoNormal.Monto / 2));
         Assert.That(segundoMedio.Monto, Is.EqualTo(boletoNormal.Monto / 2));
         Assert.That(tarjetaMedio.Saldo, Is.EqualTo(5000m - Colectivo.Tarifa));
+    }
 
     [Test]
     public void PagarCon_PermiteViajarConSaldoCeroQuedandoEnNegativo()
