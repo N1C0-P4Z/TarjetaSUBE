@@ -88,12 +88,14 @@ public class ColectivoTests
     public void PagarCon_LanzaExcepcion_CuandoNoHaySaldoSuficiente()
     {
         var tarjeta = Tarjeta.Crear();
+        tarjeta.Saldo = -Colectivo.Tarifa;
+        _db.SaveChanges();
         var colectivo = Colectivo.Crear(101);
 
         Assert.That(
             () => colectivo.PagarCon(tarjeta),
             Throws.TypeOf<ArgumentException>());
-        Assert.That(tarjeta.Saldo, Is.EqualTo(0m));
+        Assert.That(tarjeta.Saldo, Is.EqualTo(-Colectivo.Tarifa));
         Assert.That(_db.Boletos.Count(), Is.EqualTo(0));
     }
 
@@ -106,5 +108,106 @@ public class ColectivoTests
         Assert.That(
             () => colectivo.PagarCon(tarjeta),
             Throws.TypeOf<ArgumentException>());
+    }
+
+    [Test]
+    public void PagarCon_FranquiciaCompletaSiemprePuedePagar()
+    {
+        var tipo = TarjetaTipo.Crear("Franquicia completa", 0m);
+        var tarjeta = Tarjeta.Crear(tipo.Id);
+        var colectivo = Colectivo.Crear(101);
+
+        var primero = colectivo.PagarCon(tarjeta);
+        var segundo = colectivo.PagarCon(tarjeta);
+
+        Assert.That(primero.Monto, Is.EqualTo(0m));
+        Assert.That(segundo.Monto, Is.EqualTo(0m));
+        Assert.That(tarjeta.Saldo, Is.EqualTo(0m));
+        Assert.That(_db.Boletos.Count(), Is.EqualTo(2));
+    }
+
+    [Test]
+    public void PagarCon_MedioBoletoCobraSiempreLaMitadDelNormal()
+    {
+        var normal = TarjetaTipo.Crear("Normal", 1m);
+        var medio = TarjetaTipo.Crear("Medio boleto estudiantil", 0.5m);
+        var tarjetaNormal = Tarjeta.Crear(normal.Id);
+        var tarjetaMedio = Tarjeta.Crear(medio.Id);
+        tarjetaNormal.Cargar(5000);
+        tarjetaMedio.Cargar(5000);
+        var colectivo = Colectivo.Crear(142);
+
+        var boletoNormal = colectivo.PagarCon(tarjetaNormal);
+        var primerMedio = colectivo.PagarCon(tarjetaMedio);
+        var segundoMedio = colectivo.PagarCon(tarjetaMedio);
+
+        Assert.That(primerMedio.Monto, Is.EqualTo(boletoNormal.Monto / 2));
+        Assert.That(segundoMedio.Monto, Is.EqualTo(boletoNormal.Monto / 2));
+        Assert.That(tarjetaMedio.Saldo, Is.EqualTo(5000m - Colectivo.Tarifa));
+    }
+
+    [Test]
+    public void PagarCon_PermiteViajarConSaldoCeroQuedandoEnNegativo()
+    {
+        var tarjeta = Tarjeta.Crear();
+        var colectivo = Colectivo.Crear(101);
+
+        var boleto = colectivo.PagarCon(tarjeta);
+
+        Assert.That(boleto.Id, Is.Not.EqualTo(0));
+        Assert.That(boleto.Monto, Is.EqualTo(Colectivo.Tarifa));
+        Assert.That(tarjeta.Saldo, Is.EqualTo(-Colectivo.Tarifa));
+        Assert.That(boleto.SaldoRestante, Is.EqualTo(tarjeta.Saldo));
+        Assert.That(_db.Boletos.Count(), Is.EqualTo(1));
+    }
+
+    [Test]
+    public void PagarConSaldoCeroYCargar2000()
+    {
+        var tarjeta = Tarjeta.Crear();
+        var colectivo = Colectivo.Crear(101);
+
+        colectivo.PagarCon(tarjeta);
+        tarjeta.Cargar(2000);
+
+        Assert.That(tarjeta.Saldo, Is.EqualTo(420m));
+    }
+
+    [Test]
+    public void PagarCon_DescuentaElSaldoEnMultiplesViajes()
+    {
+        var tarjeta = Tarjeta.Crear();
+        tarjeta.Cargar(5000);
+        var colectivo = Colectivo.Crear(142);
+
+        var boleto1 = colectivo.PagarCon(tarjeta);
+        var boleto2 = colectivo.PagarCon(tarjeta);
+        var boleto3 = colectivo.PagarCon(tarjeta);
+
+        Assert.That(boleto1, Is.Not.Null);
+        Assert.That(boleto2, Is.Not.Null);
+        Assert.That(boleto3, Is.Not.Null);
+        Assert.That(tarjeta.Saldo, Is.EqualTo(5000m - Colectivo.Tarifa * 3));
+    }
+
+    [Test]
+    public void PagarCon_LanzaExcepcion_CuandoBajariaDelSaldoMinimo()
+    {
+        var tarjeta = Tarjeta.Crear();
+        tarjeta.Cargar(2000);
+        var colectivo = Colectivo.Crear(101);
+
+        var boleto1 = colectivo.PagarCon(tarjeta);
+        var boleto2 = colectivo.PagarCon(tarjeta);
+
+        Assert.That(boleto1, Is.Not.Null);
+        Assert.That(boleto2, Is.Not.Null);
+        Assert.That(tarjeta.Saldo, Is.EqualTo(2000m - Colectivo.Tarifa * 2));
+
+        Assert.That(
+            () => colectivo.PagarCon(tarjeta),
+            Throws.TypeOf<ArgumentException>());
+        Assert.That(tarjeta.Saldo, Is.EqualTo(2000m - Colectivo.Tarifa * 2));
+        Assert.That(_db.Boletos.Count(), Is.EqualTo(2));
     }
 }

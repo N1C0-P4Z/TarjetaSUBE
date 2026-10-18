@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+
 namespace TarjetaSUBE;
 
 public class Colectivo
@@ -24,20 +26,24 @@ public class Colectivo
         return colectivo;
     }
 
-    public Boleto PagarCon(Tarjeta tarjeta)
+    public Boleto? PagarCon(Tarjeta tarjeta)
     {
-        var tarjetaGuardada = Contexto.Db.Tarjetas.Find(tarjeta.Id)
+        var tarjetaGuardada = Contexto.Db.Tarjetas
+            .Include(t => t.TarjetaTipo)
+            .FirstOrDefault(t => t.Id == tarjeta.Id)
             ?? throw new ArgumentException("La tarjeta no existe.");
 
-        if (tarjetaGuardada.Saldo < Tarifa)
-            throw new ArgumentException("Saldo insuficiente. No se permite saldo negativo.");
+        var monto = tarjetaGuardada.CalcularPrecioPasaje(Tarifa);
 
-        tarjetaGuardada.Saldo -= Tarifa;
+        if (tarjetaGuardada.Saldo - monto < Tarjeta.SaldoMinimo)
+            throw new ArgumentException("Saldo insuficiente.");
+
+        tarjetaGuardada.Saldo -= monto;
 
         var boleto = new Boleto
         {
             Fecha = DateTime.Now,
-            Monto = Tarifa,
+            Monto = monto,
             SaldoRestante = tarjetaGuardada.Saldo,
             Tarjeta = tarjetaGuardada,
             Colectivo = this,
