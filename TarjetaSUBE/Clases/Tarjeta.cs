@@ -47,12 +47,31 @@ public class Tarjeta
 
     public decimal CalcularPrecioPasaje(decimal tarifaBasica)
     {
+        return CalcularPrecioPasaje(tarifaBasica, DateTime.Now);
+    }
+
+    public decimal CalcularPrecioPasaje(decimal tarifaBasica, DateTime fecha)
+    {
         var tipo = TarjetaTipo
             ?? Contexto.Db.TarjetasTipo.Find(TarjetaTipoId)
             ?? throw new ArgumentException("La tarjeta no tiene un tipo.");
 
+        if (tipo.Nombre == "Franquicia completa")
+        {
+            var desde = fecha.Date;
+            var hasta = desde.AddDays(1);
+            var viajesHoy = Contexto.Db.Boletos.Count(b =>
+                b.Tarjeta!.Id == Id && b.Fecha >= desde && b.Fecha < hasta);
+
+            if (viajesHoy < 2)
+                return 0m;
+
+            return tarifaBasica;
+        }
+
         return tipo.CalcularPrecio(tarifaBasica);
     }
+
 
     public void Cargar(decimal monto)
     {

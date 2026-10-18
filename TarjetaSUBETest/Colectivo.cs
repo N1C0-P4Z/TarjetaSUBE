@@ -127,6 +127,36 @@ public class ColectivoTests
     }
 
     [Test]
+    public void PagarCon_FranquiciaCompleta_NoHaceMasDeDosViajesGratisPorDia()
+    {
+        var tipo = TarjetaTipo.Crear("Franquicia completa", 0m);
+        var tarjeta = Tarjeta.Crear(tipo.Id);
+        var colectivo = Colectivo.Crear(101);
+
+        colectivo.PagarCon(tarjeta);
+        colectivo.PagarCon(tarjeta);
+        var tercero = colectivo.PagarCon(tarjeta);
+
+        Assert.That(tercero.Monto, Is.Not.EqualTo(0m));
+        Assert.That(_db.Boletos.Count(b => b.Monto == 0m), Is.EqualTo(2));
+    }
+
+    [Test]
+    public void PagarCon_FranquiciaCompleta_DelTercerViajeCobraPrecioCompleto()
+    {
+        var tipo = TarjetaTipo.Crear("Franquicia completa", 0m);
+        var tarjeta = Tarjeta.Crear(tipo.Id);
+        var colectivo = Colectivo.Crear(101);
+
+        colectivo.PagarCon(tarjeta);
+        colectivo.PagarCon(tarjeta);
+        var tercero = colectivo.PagarCon(tarjeta);
+
+        Assert.That(tercero.Monto, Is.EqualTo(Colectivo.Tarifa));
+        Assert.That(tarjeta.Saldo, Is.EqualTo(-Colectivo.Tarifa));
+    }
+
+    [Test]
     public void PagarCon_MedioBoletoCobraSiempreLaMitadDelNormal()
     {
         var normal = TarjetaTipo.Crear("Normal", 1m);
