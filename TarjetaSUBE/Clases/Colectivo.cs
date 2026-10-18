@@ -35,10 +35,7 @@ public class Colectivo
 
         var monto = tarjetaGuardada.CalcularPrecioPasaje(Tarifa);
 
-        if (tarjetaGuardada.Saldo - monto < Tarjeta.SaldoMinimo)
-            throw new ArgumentException("Saldo insuficiente.");
-
-        tarjetaGuardada.Saldo -= monto;
+        tarjetaGuardada.Descontar(monto);
 
         var boleto = new Boleto
         {
@@ -53,6 +50,7 @@ public class Colectivo
         Contexto.Db.SaveChanges();
 
         tarjeta.Saldo = tarjetaGuardada.Saldo;
+        tarjeta.SaldoPendiente = tarjetaGuardada.SaldoPendiente;
         return boleto;
     }
 }

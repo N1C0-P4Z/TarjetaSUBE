@@ -73,22 +73,36 @@ public class TarjetaTests
     {
         var tarjeta = Tarjeta.Crear();
 
-        tarjeta.Cargar(20000);
-        tarjeta.Cargar(20000);
+        tarjeta.Cargar(30000);
+        tarjeta.Cargar(30000);
 
         Assert.That(tarjeta.Saldo, Is.EqualTo(Tarjeta.SaldoMaximo));
+        Assert.That(tarjeta.SaldoPendiente, Is.EqualTo(4000m));
     }
 
     [Test]
-    public void Cargar_LanzaExcepcion_CuandoSuperaElLimiteDeSaldo()
+    public void AcreditarCarga_CargaSobreElMaximo_DejaSaldo56000YExcedentePendiente()
     {
         var tarjeta = Tarjeta.Crear();
         tarjeta.Cargar(30000);
+        tarjeta.Cargar(30000);
 
-        Assert.That(
-            () => tarjeta.Cargar(15000),
-            Throws.TypeOf<ArgumentException>());
-        Assert.That(tarjeta.Saldo, Is.EqualTo(30000m));
+        Assert.That(tarjeta.Saldo, Is.EqualTo(56000m));
+        Assert.That(tarjeta.SaldoPendiente, Is.EqualTo(4000m));
+    }
+
+    [Test]
+    public void AcreditarSaldoPendiente_DespuesDeUnViaje_RecargaHastaElMaximoConElPendiente()
+    {
+        var tarjeta = Tarjeta.Crear();
+        tarjeta.Cargar(30000);
+        tarjeta.Cargar(30000);
+        var colectivo = Colectivo.Crear(101);
+
+        colectivo.PagarCon(tarjeta);
+
+        Assert.That(tarjeta.Saldo, Is.EqualTo(56000m));
+        Assert.That(tarjeta.SaldoPendiente, Is.EqualTo(2420m));
     }
 
     [Test]
