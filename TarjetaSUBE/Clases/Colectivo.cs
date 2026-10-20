@@ -34,13 +34,14 @@ public class Colectivo
             ?? throw new ArgumentException("La tarjeta no existe.");
 
         var fechaViaje = DateTime.Now;
+        tarjetaGuardada.ValidarIntervaloMedioBoleto(fechaViaje);
         var monto = tarjetaGuardada.CalcularPrecioPasaje(Tarifa, fechaViaje);
 
         if (tarjetaGuardada.Saldo - monto < Tarjeta.SaldoMinimo)
             throw new ArgumentException("Saldo insuficiente.");
 
         var saldoPrevio = tarjetaGuardada.Saldo;
-        tarjetaGuardada.Saldo -= monto;
+        tarjetaGuardada.Descontar(monto);
 
         var boleto = new Boleto
         {

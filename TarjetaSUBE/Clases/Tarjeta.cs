@@ -59,15 +59,20 @@ public class Tarjeta
 
         if (tipo.Nombre == "Franquicia completa")
         {
-            var desde = fecha.Date;
-            var hasta = desde.AddDays(1);
-            var viajesHoy = Contexto.Db.Boletos.Count(b =>
-                b.Tarjeta!.Id == Id && b.Fecha >= desde && b.Fecha < hasta);
+            var viajesHoy = ViajesEnElDia(fecha);
 
             if (viajesHoy < 2)
                 return 0m;
 
             return tarifaBasica;
+        }
+
+        if (tipo.Nombre == "Medio boleto estudiantil")
+        {
+            if (ViajesEnElDia(fecha) >= 2)
+                return tarifaBasica;
+
+            return tipo.CalcularPrecio(tarifaBasica);
         }
 
         return tipo.CalcularPrecio(tarifaBasica);
@@ -108,6 +113,32 @@ public class Tarjeta
 
         Saldo -= monto;
         AcreditarSaldoPendiente();
+    }
+
+    public void ValidarIntervaloMedioBoleto(DateTime fecha)
+    {
+        var tipo = TarjetaTipo
+            ?? Contexto.Db.TarjetasTipo.Find(TarjetaTipoId);
+
+        if (tipo?.Nombre != "Medio boleto estudiantil")
+            return;
+
+        var ultimo = Contexto.Db.Boletos
+            .Where(b => b.Tarjeta!.Id == Id)
+            .OrderByDescending(b => b.Fecha)
+            .FirstOrDefault();
+
+        if (ultimo is not null && fecha - ultimo.Fecha < TimeSpan.FromMinutes(5))
+            throw new ArgumentException("Deben pasar 5 minutos entre viajes con medio boleto.");
+    }
+
+    private int ViajesEnElDia(DateTime fecha)
+    {
+        var desde = fecha.Date;
+        var hasta = desde.AddDays(1);
+
+        return Contexto.Db.Boletos.Count(b =>
+            b.Tarjeta!.Id == Id && b.Fecha >= desde && b.Fecha < hasta);
     }
 
     private void AcreditarSaldoPendiente()
