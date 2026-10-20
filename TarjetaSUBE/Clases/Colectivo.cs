@@ -36,12 +36,17 @@ public class Colectivo
         var fechaViaje = DateTime.Now;
         var monto = tarjetaGuardada.CalcularPrecioPasaje(Tarifa, fechaViaje);
 
-        tarjetaGuardada.Descontar(monto);
+        if (tarjetaGuardada.Saldo - monto < Tarjeta.SaldoMinimo)
+            throw new ArgumentException("Saldo insuficiente.");
+
+        var saldoPrevio = tarjetaGuardada.Saldo;
+        tarjetaGuardada.Saldo -= monto;
 
         var boleto = new Boleto
         {
             Fecha = fechaViaje,
             Monto = monto,
+            Saldo = saldoPrevio,
             SaldoRestante = tarjetaGuardada.Saldo,
             Tarjeta = tarjetaGuardada,
             Colectivo = this,

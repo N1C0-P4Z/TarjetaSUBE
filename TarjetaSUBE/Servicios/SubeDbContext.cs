@@ -44,6 +44,9 @@ public class SubeDbContext : DbContext
             .Property(b => b.Monto)
             .HasPrecision(18, 2);
         modelBuilder.Entity<Boleto>()
+            .Property(b => b.Saldo)
+            .HasPrecision(18, 2);
+        modelBuilder.Entity<Boleto>()
             .Property(b => b.SaldoRestante)
             .HasPrecision(18, 2);
     }
