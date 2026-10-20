@@ -169,11 +169,71 @@ public class ColectivoTests
 
         var boletoNormal = colectivo.PagarCon(tarjetaNormal);
         var primerMedio = colectivo.PagarCon(tarjetaMedio);
+        primerMedio.Fecha = DateTime.Now.AddMinutes(-5);
+        _db.SaveChanges();
         var segundoMedio = colectivo.PagarCon(tarjetaMedio);
 
         Assert.That(primerMedio.Monto, Is.EqualTo(boletoNormal.Monto / 2));
         Assert.That(segundoMedio.Monto, Is.EqualTo(boletoNormal.Monto / 2));
         Assert.That(tarjetaMedio.Saldo, Is.EqualTo(5000m - Colectivo.Tarifa));
+    }
+
+    [Test]
+    public void PagarCon_MedioBoleto_NoPermiteOtroViajeAntesDeCincoMinutos()
+    {
+        var tipo = TarjetaTipo.Crear("Medio boleto estudiantil", 0.5m);
+        var tarjeta = Tarjeta.Crear(tipo.Id);
+        tarjeta.Cargar(5000);
+        var colectivo = Colectivo.Crear(142);
+
+        colectivo.PagarCon(tarjeta);
+        var saldo = tarjeta.Saldo;
+
+        Assert.That(
+            () => colectivo.PagarCon(tarjeta),
+            Throws.TypeOf<ArgumentException>());
+        Assert.That(tarjeta.Saldo, Is.EqualTo(saldo));
+        Assert.That(_db.Boletos.Count(), Is.EqualTo(1));
+    }
+
+    [Test]
+    public void PagarCon_MedioBoleto_PermiteViajarCuandoPasaronCincoMinutos()
+    {
+        var tipo = TarjetaTipo.Crear("Medio boleto estudiantil", 0.5m);
+        var tarjeta = Tarjeta.Crear(tipo.Id);
+        tarjeta.Cargar(5000);
+        var colectivo = Colectivo.Crear(142);
+
+        var primero = colectivo.PagarCon(tarjeta);
+        primero.Fecha = DateTime.Now.AddMinutes(-5);
+        _db.SaveChanges();
+
+        var segundo = colectivo.PagarCon(tarjeta);
+
+        Assert.That(segundo.Monto, Is.EqualTo(Colectivo.Tarifa / 2));
+        Assert.That(_db.Boletos.Count(), Is.EqualTo(2));
+    }
+
+    [Test]
+    public void PagarCon_MedioBoleto_NoHaceMasDeDosViajesPorDia()
+    {
+        var tipo = TarjetaTipo.Crear("Medio boleto estudiantil", 0.5m);
+        var tarjeta = Tarjeta.Crear(tipo.Id);
+        tarjeta.Cargar(5000);
+        var colectivo = Colectivo.Crear(142);
+
+        var primero = colectivo.PagarCon(tarjeta);
+        primero.Fecha = DateTime.Now.AddMinutes(-10);
+        _db.SaveChanges();
+        var segundo = colectivo.PagarCon(tarjeta);
+        segundo.Fecha = DateTime.Now.AddMinutes(-5);
+        _db.SaveChanges();
+        var tercero = colectivo.PagarCon(tarjeta);
+
+        Assert.That(primero.Monto, Is.EqualTo(Colectivo.Tarifa / 2));
+        Assert.That(segundo.Monto, Is.EqualTo(Colectivo.Tarifa / 2));
+        Assert.That(tercero.Monto, Is.EqualTo(Colectivo.Tarifa));
+        Assert.That(_db.Boletos.Count(b => b.Monto == Colectivo.Tarifa / 2), Is.EqualTo(2));
     }
 
     [Test]
