@@ -83,7 +83,7 @@ void CargarTarjeta()
     var monto = Convert.ToDecimal(Console.ReadLine());
 
     tarjeta.Cargar(monto);
-    Console.WriteLine($"Carga realizada. Saldo: {tarjeta.Saldo:C}");
+    Console.WriteLine($"Carga realizada. Saldo: {tarjeta.Saldo:C}. Pendiente: {tarjeta.SaldoPendiente:C}");
 }
 
 void CrearColectivo()
@@ -113,7 +113,7 @@ void PagarViaje()
         ?? throw new ArgumentException("La tarjeta no existe.");
 
     var boleto = colectivo.PagarCon(tarjeta);
-    Console.WriteLine($"Boleto #{boleto.Id}. Linea {colectivo.Linea}. Monto: {boleto.Monto:C}. Saldo restante: {boleto.SaldoRestante:C}");
+    Console.WriteLine($"Boleto #{boleto.Id}. Linea {colectivo.Linea}. Monto: {boleto.Monto:C}. Saldo restante: {boleto.SaldoRestante:C}. Pendiente: {tarjeta.SaldoPendiente:C}");
 }
 
 void ListarBoletos()

@@ -4,7 +4,7 @@ namespace TarjetaSUBE;
 
 public class Tarjeta
 {
-    public const decimal SaldoMaximo = 40000m;
+    public const decimal SaldoMaximo = 56000m;
     public const decimal SaldoMinimo = -2000m;
 
     public static readonly decimal[] CargasAceptadas =
@@ -14,6 +14,7 @@ public class Tarjeta
 
     public int Id { get; set; }
     public decimal Saldo { get; set; }
+    public decimal SaldoPendiente { get; set; }
     public int TarjetaTipoId { get; set; }
     public TarjetaTipo? TarjetaTipo { get; set; }
     public List<Boleto> Boletos { get; set; } = new();
@@ -47,22 +48,75 @@ public class Tarjeta
 
     public decimal CalcularPrecioPasaje(decimal tarifaBasica)
     {
+        return CalcularPrecioPasaje(tarifaBasica, DateTime.Now);
+    }
+
+    public decimal CalcularPrecioPasaje(decimal tarifaBasica, DateTime fecha)
+    {
         var tipo = TarjetaTipo
             ?? Contexto.Db.TarjetasTipo.Find(TarjetaTipoId)
             ?? throw new ArgumentException("La tarjeta no tiene un tipo.");
 
+        if (tipo.Nombre == "Franquicia completa")
+        {
+            var desde = fecha.Date;
+            var hasta = desde.AddDays(1);
+            var viajesHoy = Contexto.Db.Boletos.Count(b =>
+                b.Tarjeta!.Id == Id && b.Fecha >= desde && b.Fecha < hasta);
+
+            if (viajesHoy < 2)
+                return 0m;
+
+            return tarifaBasica;
+        }
+
         return tipo.CalcularPrecio(tarifaBasica);
     }
+
 
     public void Cargar(decimal monto)
     {
         if (!CargasAceptadas.Contains(monto))
             throw new ArgumentException("El monto de carga no esta aceptado.");
 
-        if (Saldo + monto > SaldoMaximo)
-            throw new ArgumentException("La carga supera el limite de saldo de la tarjeta.");
-
-        Saldo += monto;
+        AcreditarCarga(monto);
         Contexto.Db.SaveChanges();
+    }
+
+    public void AcreditarCarga(decimal monto)
+    {
+        if (monto <= 0)
+            return;
+
+        var espacioDisponible = SaldoMaximo - Saldo;
+
+        if (espacioDisponible <= 0)
+        {
+            SaldoPendiente += monto;
+            return;
+        }
+
+        var montoAcreditado = Math.Min(monto, espacioDisponible);
+        Saldo += montoAcreditado;
+        SaldoPendiente += monto - montoAcreditado;
+    }
+
+    public void Descontar(decimal monto)
+    {
+        if (Saldo - monto < SaldoMinimo)
+            throw new ArgumentException("Saldo insuficiente.");
+
+        Saldo -= monto;
+        AcreditarSaldoPendiente();
+    }
+
+    private void AcreditarSaldoPendiente()
+    {
+        if (SaldoPendiente <= 0)
+            return;
+
+        var pendiente = SaldoPendiente;
+        SaldoPendiente = 0;
+        AcreditarCarga(pendiente);
     }
 }
