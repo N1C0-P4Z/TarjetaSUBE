@@ -38,12 +38,14 @@ public class Colectivo
         if (tarjetaGuardada.Saldo - monto < Tarjeta.SaldoMinimo)
             throw new ArgumentException("Saldo insuficiente.");
 
+        var saldoPrevio = tarjetaGuardada.Saldo;
         tarjetaGuardada.Saldo -= monto;
 
         var boleto = new Boleto
         {
             Fecha = DateTime.Now,
             Monto = monto,
+            Saldo = saldoPrevio,
             SaldoRestante = tarjetaGuardada.Saldo,
             Tarjeta = tarjetaGuardada,
             Colectivo = this,
