@@ -5,9 +5,11 @@ namespace TarjetaSUBE;
 public class Colectivo
 {
     public const decimal Tarifa = 1580m;
+    public const decimal TarifaInterurbana = 3000m;
 
     public int Id { get; set; }
     public int Linea { get; set; }
+    public bool Interurbana { get; set; }
     public List<Boleto> Boletos { get; set; } = new();
 
     public static List<Colectivo> Listar()
@@ -26,6 +28,25 @@ public class Colectivo
         return colectivo;
     }
 
+    public static Colectivo CrearInterurbano(int linea)
+    {
+        if (linea <= 0)
+            throw new ArgumentException("La linea del colectivo debe ser mayor que cero.");
+
+        var colectivo = new Colectivo { Linea = linea, Interurbana = true };
+        Contexto.Db.Colectivos.Add(colectivo);
+        Contexto.Db.SaveChanges();
+        return colectivo;
+    }
+
+    public decimal TarifaVigente()
+    {
+        if (Interurbana)
+            return TarifaInterurbana;
+
+        return Tarifa;
+    }
+
     public Boleto? PagarCon(Tarjeta tarjeta)
     {
         var tarjetaGuardada = Contexto.Db.Tarjetas
@@ -35,7 +56,7 @@ public class Colectivo
 
         var fechaViaje = DateTime.Now;
         tarjetaGuardada.ValidarIntervaloMedioBoleto(fechaViaje);
-        var monto = tarjetaGuardada.CalcularPrecioPasaje(Tarifa, fechaViaje);
+        var monto = tarjetaGuardada.CalcularPrecioPasaje(TarifaVigente(), fechaViaje);
 
         if (tarjetaGuardada.Saldo - monto < Tarjeta.SaldoMinimo)
             throw new ArgumentException("Saldo insuficiente.");
