@@ -115,6 +115,23 @@ public class Tarjeta
         AcreditarSaldoPendiente();
     }
 
+    public void ValidarFranjaFranquicia(DateTime fecha)
+    {
+        var tipo = TarjetaTipo
+            ?? Contexto.Db.TarjetasTipo.Find(TarjetaTipoId);
+
+        if (tipo is null || tipo.Nombre == "Normal")
+            return;
+
+        var dia = fecha.DayOfWeek;
+        if (dia == DayOfWeek.Saturday || dia == DayOfWeek.Sunday)
+            throw new ArgumentException("La franquicia solo se puede usar de lunes a viernes de 6 a 22.");
+
+        var hora = fecha.TimeOfDay;
+        if (hora < TimeSpan.FromHours(6) || hora >= TimeSpan.FromHours(22))
+            throw new ArgumentException("La franquicia solo se puede usar de lunes a viernes de 6 a 22.");
+    }
+
     public void ValidarIntervaloMedioBoleto(DateTime fecha)
     {
         var tipo = TarjetaTipo

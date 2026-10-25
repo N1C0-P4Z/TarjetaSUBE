@@ -5,6 +5,11 @@ namespace TarjetaSUBETest;
 
 public class BoletoTests
 {
+    private static DateTime FechaFranjaValida()
+    {
+        return new DateTime(2026, 10, 21, 10, 0, 0);
+    }
+
     private SubeDbContext _db = null!;
 
     [SetUp]
@@ -68,8 +73,9 @@ public class BoletoTests
         tarjeta.Cargar(5000);
         var colectivo = Colectivo.Crear(42);
 
+        var fecha = FechaFranjaValida();
         var saldoAntes = tarjeta.Saldo;
-        var boleto = colectivo.PagarCon(tarjeta)!;
+        var boleto = colectivo.PagarCon(tarjeta, fecha)!;
 
         Assert.That(boleto.TipoTarjeta, Is.EqualTo("Medio boleto estudiantil"));
         Assert.That(boleto.Linea, Is.EqualTo(42));
@@ -85,8 +91,9 @@ public class BoletoTests
         var tipo = TarjetaTipo.Crear("Boleto gratuito estudiantil", 0m);
         var tarjeta = Tarjeta.Crear(tipo.Id);
         var colectivo = Colectivo.Crear(100);
+        var fecha = FechaFranjaValida();
 
-        var boleto = colectivo.PagarCon(tarjeta)!;
+        var boleto = colectivo.PagarCon(tarjeta, fecha)!;
 
         Assert.That(boleto.TipoTarjeta, Is.EqualTo("Boleto gratuito estudiantil"));
         Assert.That(boleto.TotalAbonado, Is.EqualTo(0m));
@@ -101,8 +108,9 @@ public class BoletoTests
         var tipo = TarjetaTipo.Crear("Franquicia completa", 0m);
         var tarjeta = Tarjeta.Crear(tipo.Id);
         var colectivo = Colectivo.Crear(200);
+        var fecha = FechaFranjaValida();
 
-        var boleto = colectivo.PagarCon(tarjeta)!;
+        var boleto = colectivo.PagarCon(tarjeta, fecha)!;
 
         Assert.That(boleto.TipoTarjeta, Is.EqualTo("Franquicia completa"));
         Assert.That(boleto.TotalAbonado, Is.EqualTo(0m));
