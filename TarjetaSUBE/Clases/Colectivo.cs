@@ -34,6 +34,7 @@ public class Colectivo
             ?? throw new ArgumentException("La tarjeta no existe.");
 
         var fechaViaje = DateTime.Now;
+        tarjetaGuardada.ValidarIntervaloMedioBoleto(fechaViaje);
         var monto = tarjetaGuardada.CalcularPrecioPasaje(Tarifa, fechaViaje);
 
         var saldoPrevio = tarjetaGuardada.Saldo;
