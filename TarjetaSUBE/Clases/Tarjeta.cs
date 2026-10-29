@@ -115,6 +115,41 @@ public class Tarjeta
         AcreditarSaldoPendiente();
     }
 
+    public bool CorrespondeTrasbordo(DateTime fecha, int linea)
+    {
+        if (!EnFranjaDeTrasbordo(fecha))
+            return false;
+
+        var anteriores = Contexto.Db.Boletos
+            .Include(b => b.Colectivo)
+            .Where(b => b.Tarjeta!.Id == Id && b.Fecha <= fecha)
+            .ToList();
+
+        var ancla = anteriores
+            .Where(b => !b.EsTrasbordo)
+            .OrderByDescending(b => b.Fecha)
+            .FirstOrDefault();
+
+        if (ancla is null || fecha - ancla.Fecha > TimeSpan.FromHours(1))
+            return false;
+
+        var lineasUsadas = anteriores
+            .Where(b => b.Fecha >= ancla.Fecha)
+            .Select(b => b.Linea)
+            .ToHashSet();
+
+        return !lineasUsadas.Contains(linea);
+    }
+
+    private static bool EnFranjaDeTrasbordo(DateTime fecha)
+    {
+        if (fecha.DayOfWeek == DayOfWeek.Sunday)
+            return false;
+
+        var hora = fecha.TimeOfDay;
+        return hora >= new TimeSpan(7, 0, 0) && hora <= new TimeSpan(22, 0, 0);
+    }
+
     public void ValidarIntervaloMedioBoleto(DateTime fecha)
     {
         var tipo = TarjetaTipo

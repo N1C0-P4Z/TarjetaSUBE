@@ -28,14 +28,21 @@ public class Colectivo
 
     public Boleto? PagarCon(Tarjeta tarjeta)
     {
+        return PagarCon(tarjeta, DateTime.Now);
+    }
+
+    public Boleto? PagarCon(Tarjeta tarjeta, DateTime fechaViaje)
+    {
         var tarjetaGuardada = Contexto.Db.Tarjetas
             .Include(t => t.TarjetaTipo)
             .FirstOrDefault(t => t.Id == tarjeta.Id)
             ?? throw new ArgumentException("La tarjeta no existe.");
 
-        var fechaViaje = DateTime.Now;
         tarjetaGuardada.ValidarIntervaloMedioBoleto(fechaViaje);
-        var monto = tarjetaGuardada.CalcularPrecioPasaje(Tarifa, fechaViaje);
+        var esTrasbordo = tarjetaGuardada.CorrespondeTrasbordo(fechaViaje, Linea);
+        var monto = esTrasbordo
+            ? 0m
+            : tarjetaGuardada.CalcularPrecioPasaje(Tarifa, fechaViaje);
 
         if (tarjetaGuardada.Saldo - monto < Tarjeta.SaldoMinimo)
             throw new ArgumentException("Saldo insuficiente.");
@@ -49,6 +56,7 @@ public class Colectivo
             Monto = monto,
             Saldo = saldoPrevio,
             SaldoRestante = tarjetaGuardada.Saldo,
+            EsTrasbordo = esTrasbordo,
             Tarjeta = tarjetaGuardada,
             Colectivo = this,
         };
