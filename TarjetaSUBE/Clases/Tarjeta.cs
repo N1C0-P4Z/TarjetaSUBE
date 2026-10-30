@@ -75,6 +75,9 @@ public class Tarjeta
             return tipo.CalcularPrecio(tarifaBasica);
         }
 
+        if (tipo.Nombre == "Normal")
+            return PrecioConUsoFrecuente(tarifaBasica, fecha);
+
         return tipo.CalcularPrecio(tarifaBasica);
     }
 
@@ -149,10 +152,32 @@ public class Tarjeta
             throw new ArgumentException("Deben pasar 5 minutos entre viajes con medio boleto.");
     }
 
+    private decimal PrecioConUsoFrecuente(decimal tarifaBasica, DateTime fecha)
+    {
+        var numeroDeViaje = ViajesEnElMes(fecha) + 1;
+
+        if (numeroDeViaje >= 80)
+            return tarifaBasica * 0.75m;
+
+        if (numeroDeViaje >= 30)
+            return tarifaBasica * 0.80m;
+
+        return tarifaBasica;
+    }
+
     private int ViajesEnElDia(DateTime fecha)
     {
         var desde = fecha.Date;
         var hasta = desde.AddDays(1);
+
+        return Contexto.Db.Boletos.Count(b =>
+            b.Tarjeta!.Id == Id && b.Fecha >= desde && b.Fecha < hasta);
+    }
+
+    private int ViajesEnElMes(DateTime fecha)
+    {
+        var desde = new DateTime(fecha.Year, fecha.Month, 1);
+        var hasta = desde.AddMonths(1);
 
         return Contexto.Db.Boletos.Count(b =>
             b.Tarjeta!.Id == Id && b.Fecha >= desde && b.Fecha < hasta);

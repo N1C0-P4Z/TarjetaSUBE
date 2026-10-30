@@ -565,4 +565,135 @@ public class ColectivoTests
         Assert.That(boleto!.Monto, Is.EqualTo(Colectivo.Tarifa));
         Assert.That(_db.Boletos.Count(), Is.EqualTo(1));
     }
+
+    [Test]
+    public void PagarCon_UsoFrecuente_Viaje29CobraTarifaCompleta()
+    {
+        var tarjeta = Tarjeta.Crear();
+        tarjeta.Cargar(2000);
+        var colectivo = Colectivo.Crear(101);
+        RegistrarViajes(tarjeta, colectivo, 28, DateTime.Now);
+
+        var boleto = colectivo.PagarCon(tarjeta);
+
+        Assert.That(boleto!.Monto, Is.EqualTo(Colectivo.Tarifa));
+        Assert.That(tarjeta.Saldo, Is.EqualTo(2000m - Colectivo.Tarifa));
+    }
+
+    [Test]
+    public void PagarCon_UsoFrecuente_Viaje30CobraVeintePorCientoMenos()
+    {
+        var tarjeta = Tarjeta.Crear();
+        tarjeta.Cargar(2000);
+        var colectivo = Colectivo.Crear(101);
+        RegistrarViajes(tarjeta, colectivo, 29, DateTime.Now);
+
+        var boleto = colectivo.PagarCon(tarjeta);
+
+        Assert.That(boleto!.Monto, Is.EqualTo(Colectivo.Tarifa * 0.80m));
+        Assert.That(tarjeta.Saldo, Is.EqualTo(2000m - Colectivo.Tarifa * 0.80m));
+    }
+
+    [Test]
+    public void PagarCon_UsoFrecuente_Viaje79CobraVeintePorCientoMenos()
+    {
+        var tarjeta = Tarjeta.Crear();
+        tarjeta.Cargar(2000);
+        var colectivo = Colectivo.Crear(101);
+        RegistrarViajes(tarjeta, colectivo, 78, DateTime.Now);
+
+        var boleto = colectivo.PagarCon(tarjeta);
+
+        Assert.That(boleto!.Monto, Is.EqualTo(Colectivo.Tarifa * 0.80m));
+    }
+
+    [Test]
+    public void PagarCon_UsoFrecuente_Viaje80CobraVeinticincoPorCientoMenos()
+    {
+        var tarjeta = Tarjeta.Crear();
+        tarjeta.Cargar(2000);
+        var colectivo = Colectivo.Crear(101);
+        RegistrarViajes(tarjeta, colectivo, 79, DateTime.Now);
+
+        var boleto = colectivo.PagarCon(tarjeta);
+
+        Assert.That(boleto!.Monto, Is.EqualTo(Colectivo.Tarifa * 0.75m));
+        Assert.That(tarjeta.Saldo, Is.EqualTo(2000m - Colectivo.Tarifa * 0.75m));
+    }
+
+    [Test]
+    public void PagarCon_UsoFrecuente_AlCambiarDeMesVuelveATarifaCompleta()
+    {
+        var tarjeta = Tarjeta.Crear();
+        tarjeta.Cargar(2000);
+        var colectivo = Colectivo.Crear(101);
+        RegistrarViajes(tarjeta, colectivo, 80, DateTime.Now.AddMonths(-1));
+
+        var boleto = colectivo.PagarCon(tarjeta);
+
+        Assert.That(boleto!.Monto, Is.EqualTo(Colectivo.Tarifa));
+    }
+
+    [Test]
+    public void PagarCon_UsoFrecuente_NoAplicaAMedioBoletoEstudiantil()
+    {
+        var tipo = TarjetaTipo.Crear("Medio boleto estudiantil", 0.5m);
+        var tarjeta = Tarjeta.Crear(tipo.Id);
+        tarjeta.Cargar(5000);
+        var colectivo = Colectivo.Crear(101);
+        var hoy = new DateTime(2026, 6, 15, 8, 0, 0);
+        RegistrarViajes(tarjeta, colectivo, 40, new DateTime(2026, 6, 1, 8, 0, 0));
+
+        Assert.That(
+            tarjeta.CalcularPrecioPasaje(Colectivo.Tarifa, hoy),
+            Is.EqualTo(Colectivo.Tarifa / 2));
+
+        RegistrarViajes(tarjeta, colectivo, 2, hoy.AddMinutes(-10));
+
+        Assert.That(
+            tarjeta.CalcularPrecioPasaje(Colectivo.Tarifa, hoy),
+            Is.EqualTo(Colectivo.Tarifa));
+    }
+
+    [Test]
+    public void PagarCon_UsoFrecuente_NoAplicaABoletoGratuitoEstudiantil()
+    {
+        var tipo = TarjetaTipo.Crear("Boleto gratuito estudiantil", 0m);
+        var tarjeta = Tarjeta.Crear(tipo.Id);
+        var colectivo = Colectivo.Crear(101);
+        RegistrarViajes(tarjeta, colectivo, 80, new DateTime(2026, 6, 1, 8, 0, 0));
+
+        Assert.That(
+            tarjeta.CalcularPrecioPasaje(Colectivo.Tarifa, new DateTime(2026, 6, 15, 8, 0, 0)),
+            Is.EqualTo(0m));
+    }
+
+    [Test]
+    public void PagarCon_UsoFrecuente_NoAplicaAFranquiciaCompleta()
+    {
+        var tipo = TarjetaTipo.Crear("Franquicia completa", 0m);
+        var tarjeta = Tarjeta.Crear(tipo.Id);
+        var colectivo = Colectivo.Crear(101);
+        var hoy = new DateTime(2026, 6, 15, 8, 0, 0);
+        RegistrarViajes(tarjeta, colectivo, 78, new DateTime(2026, 6, 1, 8, 0, 0));
+        RegistrarViajes(tarjeta, colectivo, 2, hoy.AddMinutes(-10));
+
+        Assert.That(tarjeta.CalcularPrecioPasaje(Colectivo.Tarifa, hoy), Is.EqualTo(Colectivo.Tarifa));
+    }
+
+    private static void RegistrarViajes(Tarjeta tarjeta, Colectivo colectivo, int cantidad, DateTime fecha)
+    {
+        for (var i = 0; i < cantidad; i++)
+        {
+            Contexto.Db.Boletos.Add(new Boleto
+            {
+                Fecha = fecha,
+                Monto = Colectivo.Tarifa,
+                Tarjeta = tarjeta,
+                Colectivo = colectivo,
+            });
+        }
+
+        Contexto.Db.SaveChanges();
+    }
 }
