@@ -306,14 +306,14 @@ public class ColectivoTests
         var colectivo = Colectivo.Crear(101);
 
         var boleto1 = colectivo.PagarCon(tarjeta)!;
-        var boleto2 = colectivo.PagarCon(tarjeta)!;
 
         Assert.That(boleto1, Is.Not.Null);
         Assert.That(tarjeta.Saldo, Is.EqualTo(2000m - Colectivo.Tarifa));
 
         Assert.That(
             () => colectivo.PagarCon(tarjeta),
-            Throws.TypeOf<ArgumentException>());
+            Throws.TypeOf<ArgumentException>()
+                .With.Message.EqualTo("Saldo insuficiente."));
         Assert.That(tarjeta.Saldo, Is.EqualTo(2000m - Colectivo.Tarifa));
         Assert.That(_db.Boletos.Count(), Is.EqualTo(1));
     }
