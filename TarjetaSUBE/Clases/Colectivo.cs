@@ -61,7 +61,13 @@ public class Colectivo
 
         tarjetaGuardada.ValidarFranjaFranquicia(fechaViaje);
         tarjetaGuardada.ValidarIntervaloMedioBoleto(fechaViaje);
-        var monto = tarjetaGuardada.CalcularPrecioPasaje(TarifaVigente(), fechaViaje);
+        var esTrasbordo = tarjetaGuardada.CorrespondeTrasbordo(fechaViaje, Linea);
+        var monto = esTrasbordo
+            ? 0m
+            : tarjetaGuardada.CalcularPrecioPasaje(TarifaVigente(), fechaViaje);
+
+        if (tarjetaGuardada.Saldo - monto < Tarjeta.SaldoMinimo)
+            throw new ArgumentException("Saldo insuficiente.");
 
         var saldoPrevio = tarjetaGuardada.Saldo;
         tarjetaGuardada.Descontar(monto);
@@ -72,6 +78,7 @@ public class Colectivo
             Monto = monto,
             Saldo = saldoPrevio,
             SaldoRestante = tarjetaGuardada.Saldo,
+            EsTrasbordo = esTrasbordo,
             Tarjeta = tarjetaGuardada,
             Colectivo = this,
         };

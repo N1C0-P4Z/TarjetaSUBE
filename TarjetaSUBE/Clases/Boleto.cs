@@ -9,6 +9,7 @@ public class Boleto
     public decimal Monto { get; set; }
     public decimal Saldo { get; set; }
     public decimal SaldoRestante { get; set; }
+    public bool EsTrasbordo { get; set; }
     public int TarjetaId { get; set; }
     public Tarjeta? Tarjeta { get; set; }
     public int ColectivoId { get; set; }
