@@ -49,12 +49,17 @@ public class Colectivo
 
     public Boleto? PagarCon(Tarjeta tarjeta)
     {
+        return PagarCon(tarjeta, DateTime.Now);
+    }
+
+    public Boleto? PagarCon(Tarjeta tarjeta, DateTime fechaViaje)
+    {
         var tarjetaGuardada = Contexto.Db.Tarjetas
             .Include(t => t.TarjetaTipo)
             .FirstOrDefault(t => t.Id == tarjeta.Id)
             ?? throw new ArgumentException("La tarjeta no existe.");
 
-        var fechaViaje = DateTime.Now;
+        tarjetaGuardada.ValidarFranjaFranquicia(fechaViaje);
         tarjetaGuardada.ValidarIntervaloMedioBoleto(fechaViaje);
         var monto = tarjetaGuardada.CalcularPrecioPasaje(TarifaVigente(), fechaViaje);
 

@@ -5,6 +5,11 @@ namespace TarjetaSUBETest;
 
 public class ColectivoTests
 {
+    private static DateTime FechaFranjaValida()
+    {
+        return new DateTime(2026, 10, 21, 10, 0, 0);
+    }
+
     private SubeDbContext _db = null!;
 
     [SetUp]
@@ -113,12 +118,13 @@ public class ColectivoTests
     [Test]
     public void PagarCon_FranquiciaCompletaSiemprePuedePagar()
     {
+        var fecha = FechaFranjaValida();
         var tipo = TarjetaTipo.Crear("Franquicia completa", 0m);
         var tarjeta = Tarjeta.Crear(tipo.Id);
         var colectivo = Colectivo.Crear(101);
 
-        var primero = colectivo.PagarCon(tarjeta)!;
-        var segundo = colectivo.PagarCon(tarjeta)!;
+        var primero = colectivo.PagarCon(tarjeta, fecha);
+        var segundo = colectivo.PagarCon(tarjeta, fecha);
 
         Assert.That(primero.Monto, Is.EqualTo(0m));
         Assert.That(segundo.Monto, Is.EqualTo(0m));
@@ -129,14 +135,15 @@ public class ColectivoTests
     [Test]
     public void PagarCon_FranquiciaCompleta_NoHaceMasDeDosViajesGratisPorDia()
     {
+        var fecha = FechaFranjaValida();
         var tipo = TarjetaTipo.Crear("Franquicia completa", 0m);
         var tarjeta = Tarjeta.Crear(tipo.Id);
         tarjeta.Cargar(2000);
         var colectivo = Colectivo.Crear(101);
 
-        colectivo.PagarCon(tarjeta);
-        colectivo.PagarCon(tarjeta);
-        var tercero = colectivo.PagarCon(tarjeta)!;
+        colectivo.PagarCon(tarjeta, fecha);
+        colectivo.PagarCon(tarjeta, fecha);
+        var tercero = colectivo.PagarCon(tarjeta, fecha);
 
         Assert.That(tercero.Monto, Is.Not.EqualTo(0m));
         Assert.That(_db.Boletos.Count(b => b.Monto == 0m), Is.EqualTo(2));
@@ -145,14 +152,15 @@ public class ColectivoTests
     [Test]
     public void PagarCon_FranquiciaCompleta_DelTercerViajeCobraPrecioCompleto()
     {
+        var fecha = FechaFranjaValida();
         var tipo = TarjetaTipo.Crear("Franquicia completa", 0m);
         var tarjeta = Tarjeta.Crear(tipo.Id);
         tarjeta.Cargar(2000);
         var colectivo = Colectivo.Crear(101);
 
-        colectivo.PagarCon(tarjeta);
-        colectivo.PagarCon(tarjeta);
-        var tercero = colectivo.PagarCon(tarjeta)!;
+        colectivo.PagarCon(tarjeta, fecha);
+        colectivo.PagarCon(tarjeta, fecha);
+        var tercero = colectivo.PagarCon(tarjeta, fecha);
 
         Assert.That(tercero.Monto, Is.EqualTo(Colectivo.Tarifa));
         Assert.That(tarjeta.Saldo, Is.EqualTo(2000m - Colectivo.Tarifa));
@@ -161,6 +169,7 @@ public class ColectivoTests
     [Test]
     public void PagarCon_MedioBoletoCobraSiempreLaMitadDelNormal()
     {
+        var fecha = FechaFranjaValida();
         var normal = TarjetaTipo.Crear("Normal", 1m);
         var medio = TarjetaTipo.Crear("Medio boleto estudiantil", 0.5m);
         var tarjetaNormal = Tarjeta.Crear(normal.Id);
@@ -169,11 +178,11 @@ public class ColectivoTests
         tarjetaMedio.Cargar(5000);
         var colectivo = Colectivo.Crear(142);
 
-        var boletoNormal = colectivo.PagarCon(tarjetaNormal)!;
-        var primerMedio = colectivo.PagarCon(tarjetaMedio)!;
-        primerMedio.Fecha = DateTime.Now.AddMinutes(-5);
+        var boletoNormal = colectivo.PagarCon(tarjetaNormal, fecha);
+        var primerMedio = colectivo.PagarCon(tarjetaMedio, fecha);
+        primerMedio.Fecha = fecha.AddMinutes(-5);
         _db.SaveChanges();
-        var segundoMedio = colectivo.PagarCon(tarjetaMedio)!;
+        var segundoMedio = colectivo.PagarCon(tarjetaMedio, fecha);
 
         Assert.That(primerMedio.Monto, Is.EqualTo(boletoNormal.Monto / 2));
         Assert.That(segundoMedio.Monto, Is.EqualTo(boletoNormal.Monto / 2));
@@ -183,16 +192,17 @@ public class ColectivoTests
     [Test]
     public void PagarCon_MedioBoleto_NoPermiteOtroViajeAntesDeCincoMinutos()
     {
+        var fecha = FechaFranjaValida();
         var tipo = TarjetaTipo.Crear("Medio boleto estudiantil", 0.5m);
         var tarjeta = Tarjeta.Crear(tipo.Id);
         tarjeta.Cargar(5000);
         var colectivo = Colectivo.Crear(142);
 
-        colectivo.PagarCon(tarjeta);
+        colectivo.PagarCon(tarjeta, fecha);
         var saldo = tarjeta.Saldo;
 
         Assert.That(
-            () => colectivo.PagarCon(tarjeta),
+            () => colectivo.PagarCon(tarjeta, fecha),
             Throws.TypeOf<ArgumentException>());
         Assert.That(tarjeta.Saldo, Is.EqualTo(saldo));
         Assert.That(_db.Boletos.Count(), Is.EqualTo(1));
@@ -201,16 +211,17 @@ public class ColectivoTests
     [Test]
     public void PagarCon_MedioBoleto_PermiteViajarCuandoPasaronCincoMinutos()
     {
+        var fecha = FechaFranjaValida();
         var tipo = TarjetaTipo.Crear("Medio boleto estudiantil", 0.5m);
         var tarjeta = Tarjeta.Crear(tipo.Id);
         tarjeta.Cargar(5000);
         var colectivo = Colectivo.Crear(142);
 
-        var primero = colectivo.PagarCon(tarjeta)!;
-        primero.Fecha = DateTime.Now.AddMinutes(-5);
+        var primero = colectivo.PagarCon(tarjeta, fecha);
+        primero.Fecha = fecha.AddMinutes(-5);
         _db.SaveChanges();
 
-        var segundo = colectivo.PagarCon(tarjeta)!;
+        var segundo = colectivo.PagarCon(tarjeta, fecha);
 
         Assert.That(segundo.Monto, Is.EqualTo(Colectivo.Tarifa / 2));
         Assert.That(_db.Boletos.Count(), Is.EqualTo(2));
@@ -219,18 +230,19 @@ public class ColectivoTests
     [Test]
     public void PagarCon_MedioBoleto_NoHaceMasDeDosViajesPorDia()
     {
+        var fecha = FechaFranjaValida();
         var tipo = TarjetaTipo.Crear("Medio boleto estudiantil", 0.5m);
         var tarjeta = Tarjeta.Crear(tipo.Id);
         tarjeta.Cargar(5000);
         var colectivo = Colectivo.Crear(142);
 
-        var primero = colectivo.PagarCon(tarjeta)!;
-        primero.Fecha = DateTime.Now.AddMinutes(-10);
+        var primero = colectivo.PagarCon(tarjeta, fecha);
+        primero.Fecha = fecha.AddMinutes(-10);
         _db.SaveChanges();
-        var segundo = colectivo.PagarCon(tarjeta)!;
-        segundo.Fecha = DateTime.Now.AddMinutes(-5);
+        var segundo = colectivo.PagarCon(tarjeta, fecha);
+        segundo.Fecha = fecha.AddMinutes(-5);
         _db.SaveChanges();
-        var tercero = colectivo.PagarCon(tarjeta)!;
+        var tercero = colectivo.PagarCon(tarjeta, fecha);
 
         Assert.That(primero.Monto, Is.EqualTo(Colectivo.Tarifa / 2));
         Assert.That(segundo.Monto, Is.EqualTo(Colectivo.Tarifa / 2));
@@ -391,5 +403,166 @@ public class ColectivoTests
         Assert.That(segundo.Monto, Is.EqualTo(0m));
         Assert.That(tercero.Monto, Is.EqualTo(Colectivo.TarifaInterurbana));
         Assert.That(tarjeta.Saldo, Is.EqualTo(5000m - Colectivo.TarifaInterurbana));
+    }
+
+    [Test]
+    public void PagarCon_MedioBoletoEnFranja_CobraMitadDeTarifa()
+    {
+        var fecha = FechaFranjaValida();
+        var tipo = TarjetaTipo.Crear("Medio boleto estudiantil", 0.5m);
+        var tarjeta = Tarjeta.Crear(tipo.Id);
+        tarjeta.Cargar(2000);
+        var colectivo = Colectivo.Crear(101);
+
+        var boleto = colectivo.PagarCon(tarjeta, fecha);
+
+        Assert.That(boleto!.Monto, Is.EqualTo(Colectivo.Tarifa / 2));
+    }
+
+    [Test]
+    public void PagarCon_GratuitoEnFranja_MontoCero()
+    {
+        var fecha = FechaFranjaValida();
+        var tipo = TarjetaTipo.Crear("Boleto gratuito estudiantil", 0m);
+        var tarjeta = Tarjeta.Crear(tipo.Id);
+        var colectivo = Colectivo.Crear(101);
+
+        var boleto = colectivo.PagarCon(tarjeta, fecha);
+
+        Assert.That(boleto!.Monto, Is.EqualTo(0m));
+    }
+
+    [Test]
+    public void PagarCon_FranquiciaCompletaEnFranja_MontoCero()
+    {
+        var fecha = FechaFranjaValida();
+        var tipo = TarjetaTipo.Crear("Franquicia completa", 0m);
+        var tarjeta = Tarjeta.Crear(tipo.Id);
+        var colectivo = Colectivo.Crear(101);
+
+        var boleto = colectivo.PagarCon(tarjeta, fecha);
+
+        Assert.That(boleto!.Monto, Is.EqualTo(0m));
+    }
+
+    [Test]
+    public void PagarCon_Franquicia_ALasSeisPermitePagar()
+    {
+        var fecha = new DateTime(2026, 10, 21, 6, 0, 0);
+        var tipo = TarjetaTipo.Crear("Medio boleto estudiantil", 0.5m);
+        var tarjeta = Tarjeta.Crear(tipo.Id);
+        tarjeta.Cargar(2000);
+        var colectivo = Colectivo.Crear(101);
+
+        var boleto = colectivo.PagarCon(tarjeta, fecha);
+
+        Assert.That(boleto, Is.Not.Null);
+    }
+
+    [Test]
+    public void PagarCon_Franquicia_AntesDeLasSeis_Rechaza()
+    {
+        var fecha = new DateTime(2026, 10, 21, 5, 59, 0);
+        var tipo = TarjetaTipo.Crear("Medio boleto estudiantil", 0.5m);
+        var tarjeta = Tarjeta.Crear(tipo.Id);
+        tarjeta.Cargar(2000);
+        var colectivo = Colectivo.Crear(101);
+        var saldo = tarjeta.Saldo;
+
+        Assert.That(
+            () => colectivo.PagarCon(tarjeta, fecha),
+            Throws.TypeOf<ArgumentException>()
+                .With.Message.EqualTo("La franquicia solo se puede usar de lunes a viernes de 6 a 22."));
+        Assert.That(tarjeta.Saldo, Is.EqualTo(saldo));
+        Assert.That(_db.Boletos.Count(), Is.EqualTo(0));
+    }
+
+    [Test]
+    public void PagarCon_Franquicia_ALasVeintidos_Rechaza()
+    {
+        var fecha = new DateTime(2026, 10, 21, 22, 0, 0);
+        var tipo = TarjetaTipo.Crear("Medio boleto estudiantil", 0.5m);
+        var tarjeta = Tarjeta.Crear(tipo.Id);
+        tarjeta.Cargar(2000);
+        var colectivo = Colectivo.Crear(101);
+        var saldo = tarjeta.Saldo;
+
+        Assert.That(
+            () => colectivo.PagarCon(tarjeta, fecha),
+            Throws.TypeOf<ArgumentException>()
+                .With.Message.EqualTo("La franquicia solo se puede usar de lunes a viernes de 6 a 22."));
+        Assert.That(tarjeta.Saldo, Is.EqualTo(saldo));
+        Assert.That(_db.Boletos.Count(), Is.EqualTo(0));
+    }
+
+    [Test]
+    public void PagarCon_Franquicia_Sabado_Rechaza()
+    {
+        var fecha = new DateTime(2026, 10, 24, 10, 0, 0);
+        var tipo = TarjetaTipo.Crear("Medio boleto estudiantil", 0.5m);
+        var tarjeta = Tarjeta.Crear(tipo.Id);
+        tarjeta.Cargar(2000);
+        var colectivo = Colectivo.Crear(101);
+        var saldo = tarjeta.Saldo;
+
+        Assert.That(
+            () => colectivo.PagarCon(tarjeta, fecha),
+            Throws.TypeOf<ArgumentException>()
+                .With.Message.EqualTo("La franquicia solo se puede usar de lunes a viernes de 6 a 22."));
+        Assert.That(tarjeta.Saldo, Is.EqualTo(saldo));
+        Assert.That(_db.Boletos.Count(), Is.EqualTo(0));
+    }
+
+    [Test]
+    public void PagarCon_Franquicia_Domingo_Rechaza()
+    {
+        var fecha = new DateTime(2026, 10, 25, 10, 0, 0);
+        var tipo = TarjetaTipo.Crear("Medio boleto estudiantil", 0.5m);
+        var tarjeta = Tarjeta.Crear(tipo.Id);
+        tarjeta.Cargar(2000);
+        var colectivo = Colectivo.Crear(101);
+        var saldo = tarjeta.Saldo;
+
+        Assert.That(
+            () => colectivo.PagarCon(tarjeta, fecha),
+            Throws.TypeOf<ArgumentException>()
+                .With.Message.EqualTo("La franquicia solo se puede usar de lunes a viernes de 6 a 22."));
+        Assert.That(tarjeta.Saldo, Is.EqualTo(saldo));
+        Assert.That(_db.Boletos.Count(), Is.EqualTo(0));
+    }
+
+    [TestCase("Medio boleto estudiantil", 0.5)]
+    [TestCase("Boleto gratuito estudiantil", 0)]
+    [TestCase("Franquicia completa", 0)]
+    public void PagarCon_FranquiciaFueraDeFranja_RechazaPorTipo(string nombreTipo, decimal proporcion)
+    {
+        var fecha = new DateTime(2026, 10, 24, 10, 0, 0);
+        var tipo = TarjetaTipo.Crear(nombreTipo, proporcion);
+        var tarjeta = Tarjeta.Crear(tipo.Id);
+        if (nombreTipo == "Medio boleto estudiantil")
+            tarjeta.Cargar(2000);
+        var colectivo = Colectivo.Crear(101);
+        var saldo = tarjeta.Saldo;
+
+        Assert.That(
+            () => colectivo.PagarCon(tarjeta, fecha),
+            Throws.TypeOf<ArgumentException>()
+                .With.Message.EqualTo("La franquicia solo se puede usar de lunes a viernes de 6 a 22."));
+        Assert.That(tarjeta.Saldo, Is.EqualTo(saldo));
+        Assert.That(_db.Boletos.Count(), Is.EqualTo(0));
+    }
+
+    [Test]
+    public void PagarCon_NormalSabado_PagaTarifaCompleta()
+    {
+        var fecha = new DateTime(2026, 10, 24, 10, 0, 0);
+        var tarjeta = Tarjeta.Crear();
+        tarjeta.Cargar(2000);
+        var colectivo = Colectivo.Crear(101);
+
+        var boleto = colectivo.PagarCon(tarjeta, fecha);
+
+        Assert.That(boleto!.Monto, Is.EqualTo(Colectivo.Tarifa));
+        Assert.That(_db.Boletos.Count(), Is.EqualTo(1));
     }
 }
