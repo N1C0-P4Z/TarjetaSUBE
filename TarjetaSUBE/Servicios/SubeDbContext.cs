@@ -32,12 +32,19 @@ public class SubeDbContext : DbContext
             .Property(t => t.Saldo)
             .HasPrecision(18, 2);
 
+        modelBuilder.Entity<Tarjeta>()
+            .Property(t => t.SaldoPendiente)
+            .HasPrecision(18, 2);
+
         modelBuilder.Entity<TarjetaTipo>()
             .Property(t => t.Proporcion)
             .HasPrecision(18, 2);
 
         modelBuilder.Entity<Boleto>()
             .Property(b => b.Monto)
+            .HasPrecision(18, 2);
+        modelBuilder.Entity<Boleto>()
+            .Property(b => b.Saldo)
             .HasPrecision(18, 2);
         modelBuilder.Entity<Boleto>()
             .Property(b => b.SaldoRestante)

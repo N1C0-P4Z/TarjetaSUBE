@@ -83,21 +83,27 @@ void CargarTarjeta()
     var monto = Convert.ToDecimal(Console.ReadLine());
 
     tarjeta.Cargar(monto);
-    Console.WriteLine($"Carga realizada. Saldo: {tarjeta.Saldo:C}");
+    Console.WriteLine($"Carga realizada. Saldo: {tarjeta.Saldo:C}. Pendiente: {tarjeta.SaldoPendiente:C}");
 }
 
 void CrearColectivo()
 {
     Console.Write("Linea: ");
     var linea = Convert.ToInt32(Console.ReadLine());
-    var colectivo = Colectivo.Crear(linea);
-    Console.WriteLine($"Colectivo #{colectivo.Id} de la linea {colectivo.Linea} creado.");
+    Console.Write("Interurbana (s/n): ");
+    var interurbana = Console.ReadLine()?.Trim().ToLowerInvariant() == "s";
+    var colectivo = interurbana ? Colectivo.CrearInterurbano(linea) : Colectivo.Crear(linea);
+    var etiqueta = colectivo.Interurbana ? " interurbana" : "";
+    Console.WriteLine($"Colectivo #{colectivo.Id} de la linea {colectivo.Linea}{etiqueta} creado.");
 }
 
 void PagarViaje()
 {
     foreach (var existente in Colectivo.Listar())
-        Console.WriteLine($"#{existente.Id} - Linea {existente.Linea}");
+    {
+        var etiqueta = existente.Interurbana ? " interurbana" : "";
+        Console.WriteLine($"#{existente.Id} - Linea {existente.Linea}{etiqueta}");
+    }
 
     Console.Write("Id del colectivo: ");
     var colectivoId = Convert.ToInt32(Console.ReadLine());
@@ -113,7 +119,7 @@ void PagarViaje()
         ?? throw new ArgumentException("La tarjeta no existe.");
 
     var boleto = colectivo.PagarCon(tarjeta);
-    Console.WriteLine($"Boleto #{boleto.Id}. Linea {colectivo.Linea}. Monto: {boleto.Monto:C}. Saldo restante: {boleto.SaldoRestante:C}");
+    Console.WriteLine($"Boleto #{boleto.Id}. Linea {colectivo.Linea}. Monto: {boleto.Monto:C}. Saldo restante: {boleto.SaldoRestante:C}. Pendiente: {tarjeta.SaldoPendiente:C}");
 }
 
 void ListarBoletos()

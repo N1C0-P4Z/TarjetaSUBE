@@ -4,10 +4,12 @@ namespace TarjetaSUBE;
 
 public class Colectivo
 {
-    public const decimal Tarifa = 1580m;
+    public const decimal TarifaInterurbana = 3000m;
+    public const decimal Tarifa = 2150m;
 
     public int Id { get; set; }
     public int Linea { get; set; }
+    public bool Interurbana { get; set; }
     public List<Boleto> Boletos { get; set; } = new();
 
     public static List<Colectivo> Listar()
@@ -26,25 +28,57 @@ public class Colectivo
         return colectivo;
     }
 
+    public static Colectivo CrearInterurbano(int linea)
+    {
+        if (linea <= 0)
+            throw new ArgumentException("La linea del colectivo debe ser mayor que cero.");
+
+        var colectivo = new Colectivo { Linea = linea, Interurbana = true };
+        Contexto.Db.Colectivos.Add(colectivo);
+        Contexto.Db.SaveChanges();
+        return colectivo;
+    }
+
+    public decimal TarifaVigente()
+    {
+        if (Interurbana)
+            return TarifaInterurbana;
+
+        return Tarifa;
+    }
+
     public Boleto? PagarCon(Tarjeta tarjeta)
+    {
+        return PagarCon(tarjeta, DateTime.Now);
+    }
+
+    public Boleto? PagarCon(Tarjeta tarjeta, DateTime fechaViaje)
     {
         var tarjetaGuardada = Contexto.Db.Tarjetas
             .Include(t => t.TarjetaTipo)
             .FirstOrDefault(t => t.Id == tarjeta.Id)
             ?? throw new ArgumentException("La tarjeta no existe.");
 
-        var monto = tarjetaGuardada.CalcularPrecioPasaje(Tarifa);
+        tarjetaGuardada.ValidarFranjaFranquicia(fechaViaje);
+        tarjetaGuardada.ValidarIntervaloMedioBoleto(fechaViaje);
+        var esTrasbordo = tarjetaGuardada.CorrespondeTrasbordo(fechaViaje, Linea);
+        var monto = esTrasbordo
+            ? 0m
+            : tarjetaGuardada.CalcularPrecioPasaje(TarifaVigente(), fechaViaje);
 
         if (tarjetaGuardada.Saldo - monto < Tarjeta.SaldoMinimo)
             throw new ArgumentException("Saldo insuficiente.");
 
-        tarjetaGuardada.Saldo -= monto;
+        var saldoPrevio = tarjetaGuardada.Saldo;
+        tarjetaGuardada.Descontar(monto);
 
         var boleto = new Boleto
         {
-            Fecha = DateTime.Now,
+            Fecha = fechaViaje,
             Monto = monto,
+            Saldo = saldoPrevio,
             SaldoRestante = tarjetaGuardada.Saldo,
+            EsTrasbordo = esTrasbordo,
             Tarjeta = tarjetaGuardada,
             Colectivo = this,
         };
@@ -53,6 +87,7 @@ public class Colectivo
         Contexto.Db.SaveChanges();
 
         tarjeta.Saldo = tarjetaGuardada.Saldo;
+        tarjeta.SaldoPendiente = tarjetaGuardada.SaldoPendiente;
         return boleto;
     }
 }
