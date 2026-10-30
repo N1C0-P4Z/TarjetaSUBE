@@ -4,10 +4,12 @@ namespace TarjetaSUBE;
 
 public class Colectivo
 {
-    public const decimal Tarifa = 1580m;
+    public const decimal TarifaInterurbana = 3000m;
+    public const decimal Tarifa = 2150m;
 
     public int Id { get; set; }
     public int Linea { get; set; }
+    public bool Interurbana { get; set; }
     public List<Boleto> Boletos { get; set; } = new();
 
     public static List<Colectivo> Listar()
@@ -26,6 +28,25 @@ public class Colectivo
         return colectivo;
     }
 
+    public static Colectivo CrearInterurbano(int linea)
+    {
+        if (linea <= 0)
+            throw new ArgumentException("La linea del colectivo debe ser mayor que cero.");
+
+        var colectivo = new Colectivo { Linea = linea, Interurbana = true };
+        Contexto.Db.Colectivos.Add(colectivo);
+        Contexto.Db.SaveChanges();
+        return colectivo;
+    }
+
+    public decimal TarifaVigente()
+    {
+        if (Interurbana)
+            return TarifaInterurbana;
+
+        return Tarifa;
+    }
+
     public Boleto? PagarCon(Tarjeta tarjeta)
     {
         return PagarCon(tarjeta, DateTime.Now);
@@ -38,11 +59,12 @@ public class Colectivo
             .FirstOrDefault(t => t.Id == tarjeta.Id)
             ?? throw new ArgumentException("La tarjeta no existe.");
 
+        tarjetaGuardada.ValidarFranjaFranquicia(fechaViaje);
         tarjetaGuardada.ValidarIntervaloMedioBoleto(fechaViaje);
         var esTrasbordo = tarjetaGuardada.CorrespondeTrasbordo(fechaViaje, Linea);
         var monto = esTrasbordo
             ? 0m
-            : tarjetaGuardada.CalcularPrecioPasaje(Tarifa, fechaViaje);
+            : tarjetaGuardada.CalcularPrecioPasaje(TarifaVigente(), fechaViaje);
 
         if (tarjetaGuardada.Saldo - monto < Tarjeta.SaldoMinimo)
             throw new ArgumentException("Saldo insuficiente.");

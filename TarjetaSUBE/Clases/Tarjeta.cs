@@ -75,6 +75,9 @@ public class Tarjeta
             return tipo.CalcularPrecio(tarifaBasica);
         }
 
+        if (tipo.Nombre == "Normal")
+            return PrecioConUsoFrecuente(tarifaBasica, fecha);
+
         return tipo.CalcularPrecio(tarifaBasica);
     }
 
@@ -150,6 +153,23 @@ public class Tarjeta
         return hora >= new TimeSpan(7, 0, 0) && hora <= new TimeSpan(22, 0, 0);
     }
 
+    public void ValidarFranjaFranquicia(DateTime fecha)
+    {
+        var tipo = TarjetaTipo
+            ?? Contexto.Db.TarjetasTipo.Find(TarjetaTipoId);
+
+        if (tipo is null || tipo.Nombre == "Normal")
+            return;
+
+        var dia = fecha.DayOfWeek;
+        if (dia == DayOfWeek.Saturday || dia == DayOfWeek.Sunday)
+            throw new ArgumentException("La franquicia solo se puede usar de lunes a viernes de 6 a 22.");
+
+        var hora = fecha.TimeOfDay;
+        if (hora < TimeSpan.FromHours(6) || hora >= TimeSpan.FromHours(22))
+            throw new ArgumentException("La franquicia solo se puede usar de lunes a viernes de 6 a 22.");
+    }
+
     public void ValidarIntervaloMedioBoleto(DateTime fecha)
     {
         var tipo = TarjetaTipo
@@ -167,10 +187,32 @@ public class Tarjeta
             throw new ArgumentException("Deben pasar 5 minutos entre viajes con medio boleto.");
     }
 
+    private decimal PrecioConUsoFrecuente(decimal tarifaBasica, DateTime fecha)
+    {
+        var numeroDeViaje = ViajesEnElMes(fecha) + 1;
+
+        if (numeroDeViaje >= 80)
+            return tarifaBasica * 0.75m;
+
+        if (numeroDeViaje >= 30)
+            return tarifaBasica * 0.80m;
+
+        return tarifaBasica;
+    }
+
     private int ViajesEnElDia(DateTime fecha)
     {
         var desde = fecha.Date;
         var hasta = desde.AddDays(1);
+
+        return Contexto.Db.Boletos.Count(b =>
+            b.Tarjeta!.Id == Id && b.Fecha >= desde && b.Fecha < hasta);
+    }
+
+    private int ViajesEnElMes(DateTime fecha)
+    {
+        var desde = new DateTime(fecha.Year, fecha.Month, 1);
+        var hasta = desde.AddMonths(1);
 
         return Contexto.Db.Boletos.Count(b =>
             b.Tarjeta!.Id == Id && b.Fecha >= desde && b.Fecha < hasta);
