@@ -66,11 +66,11 @@ public class TarjetaTipoTests
         }));
     }
 
-    [TestCase("Normal", 1, 1580)]
-    [TestCase("Medio boleto estudiantil", 0.5, 790)]
+    [TestCase("Normal", 1, 2150)]
+    [TestCase("Medio boleto estudiantil", 0.5, 1075)]
     [TestCase("Boleto gratuito estudiantil", 0, 0)]
     [TestCase("Franquicia completa", 0, 0)]
-    [TestCase("Universitario", 0.5, 790)]
+    [TestCase("Universitario", 0.5, 1075)]
     public void CalcularPrecio_UsaLaProporcionDelTipo(string nombre, double proporcion, int precioEsperado)
     {
         var tipo = TarjetaTipo.Crear(nombre, (decimal)proporcion);

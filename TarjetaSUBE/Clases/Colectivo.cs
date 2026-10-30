@@ -4,8 +4,8 @@ namespace TarjetaSUBE;
 
 public class Colectivo
 {
-    public const decimal Tarifa = 1580m;
     public const decimal TarifaInterurbana = 3000m;
+    public const decimal Tarifa = 2150m;
 
     public int Id { get; set; }
     public int Linea { get; set; }
@@ -57,9 +57,6 @@ public class Colectivo
         var fechaViaje = DateTime.Now;
         tarjetaGuardada.ValidarIntervaloMedioBoleto(fechaViaje);
         var monto = tarjetaGuardada.CalcularPrecioPasaje(TarifaVigente(), fechaViaje);
-
-        if (tarjetaGuardada.Saldo - monto < Tarjeta.SaldoMinimo)
-            throw new ArgumentException("Saldo insuficiente.");
 
         var saldoPrevio = tarjetaGuardada.Saldo;
         tarjetaGuardada.Descontar(monto);
