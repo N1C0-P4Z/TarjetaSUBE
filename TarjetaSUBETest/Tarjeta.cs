@@ -55,7 +55,7 @@ public class TarjetaTests
     }
 
     [TestCase(1000)]
-    [TestCase(1580)]
+    [TestCase(2150)]
     [TestCase(0)]
     [TestCase(-2000)]
     public void Cargar_LanzaExcepcion_CuandoElMontoNoEstaAceptado(int monto)
@@ -102,7 +102,7 @@ public class TarjetaTests
         colectivo.PagarCon(tarjeta);
 
         Assert.That(tarjeta.Saldo, Is.EqualTo(56000m));
-        Assert.That(tarjeta.SaldoPendiente, Is.EqualTo(2420m));
+        Assert.That(tarjeta.SaldoPendiente, Is.EqualTo(1850m));
     }
 
     [Test]

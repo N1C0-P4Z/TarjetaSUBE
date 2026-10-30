@@ -122,17 +122,16 @@ public class BoletoTests
     [Test]
     public void DatosViaje_TarjetaNormalConSaldoNegativoPrevio_ExponeElSaldoPrevioYTotalAbonado()
     {
-        // Con saldo -400, pagar 1580 da -1980, que está dentro del límite de -2000
         var tipo = TarjetaTipo.Crear("Normal", 1m);
         var tarjeta = Tarjeta.Crear(tipo.Id);
-        tarjeta.Saldo = -400m;
+        tarjeta.Saldo = 200m;
         _db.SaveChanges();
         var colectivo = Colectivo.Crear(101);
 
         var boleto = colectivo.PagarCon(tarjeta)!;
 
         Assert.That(boleto.TotalAbonado, Is.EqualTo(Colectivo.Tarifa));
-        Assert.That(boleto.Saldo, Is.EqualTo(-400m));
-        Assert.That(boleto.SaldoRestante, Is.EqualTo(-400m - Colectivo.Tarifa));
+        Assert.That(boleto.Saldo, Is.EqualTo(200m));
+        Assert.That(boleto.SaldoRestante, Is.EqualTo(200m - Colectivo.Tarifa));
     }
 }

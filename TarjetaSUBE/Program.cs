@@ -90,14 +90,20 @@ void CrearColectivo()
 {
     Console.Write("Linea: ");
     var linea = Convert.ToInt32(Console.ReadLine());
-    var colectivo = Colectivo.Crear(linea);
-    Console.WriteLine($"Colectivo #{colectivo.Id} de la linea {colectivo.Linea} creado.");
+    Console.Write("Interurbana (s/n): ");
+    var interurbana = Console.ReadLine()?.Trim().ToLowerInvariant() == "s";
+    var colectivo = interurbana ? Colectivo.CrearInterurbano(linea) : Colectivo.Crear(linea);
+    var etiqueta = colectivo.Interurbana ? " interurbana" : "";
+    Console.WriteLine($"Colectivo #{colectivo.Id} de la linea {colectivo.Linea}{etiqueta} creado.");
 }
 
 void PagarViaje()
 {
     foreach (var existente in Colectivo.Listar())
-        Console.WriteLine($"#{existente.Id} - Linea {existente.Linea}");
+    {
+        var etiqueta = existente.Interurbana ? " interurbana" : "";
+        Console.WriteLine($"#{existente.Id} - Linea {existente.Linea}{etiqueta}");
+    }
 
     Console.Write("Id del colectivo: ");
     var colectivoId = Convert.ToInt32(Console.ReadLine());
