@@ -38,6 +38,10 @@ public class SubeDbContext : DbContext
             .Property(t => t.SaldoPendiente)
             .HasPrecision(18, 2);
 
+        modelBuilder.Entity<Tarjeta>()
+            .Property(t => t.MultaPendiente)
+            .HasPrecision(18, 2);
+
         modelBuilder.Entity<TarjetaTipo>()
             .Property(t => t.Proporcion)
             .HasPrecision(18, 2);

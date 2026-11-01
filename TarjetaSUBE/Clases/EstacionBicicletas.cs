@@ -5,6 +5,7 @@ namespace TarjetaSUBE;
 public class EstacionBicicletas
 {
     public const decimal TarifaDiaria = 2418.75m;
+    public const decimal MultaPorExceso = 1250m;
 
     public int Id { get; set; }
     public List<Alquiler> Alquileres { get; set; } = new();
@@ -24,8 +25,9 @@ public class EstacionBicicletas
             .FirstOrDefault(t => t.Id == tarjeta.Id)
             ?? throw new ArgumentException("La tarjeta no existe.");
 
-        var monto = TarifaDiaria;
+        var monto = TarifaDiaria + tarjetaGuardada.MultaPendiente;
         tarjetaGuardada.Descontar(monto);
+        tarjetaGuardada.MultaPendiente = 0;
 
         var alquiler = new Alquiler
         {
@@ -40,6 +42,7 @@ public class EstacionBicicletas
 
         tarjeta.Saldo = tarjetaGuardada.Saldo;
         tarjeta.SaldoPendiente = tarjetaGuardada.SaldoPendiente;
+        tarjeta.MultaPendiente = tarjetaGuardada.MultaPendiente;
         return alquiler;
     }
 
@@ -49,6 +52,16 @@ public class EstacionBicicletas
             throw new ArgumentException("La fecha de devolucion no puede ser anterior al inicio.");
 
         alquiler.Fin = fecha;
+
+        if (fecha - alquiler.Inicio > TimeSpan.FromHours(1))
+        {
+            var tarjeta = alquiler.Tarjeta
+                ?? Contexto.Db.Tarjetas.Find(alquiler.TarjetaId)
+                ?? throw new ArgumentException("La tarjeta no existe.");
+
+            tarjeta.MultaPendiente += MultaPorExceso;
+        }
+
         Contexto.Db.SaveChanges();
     }
 }
