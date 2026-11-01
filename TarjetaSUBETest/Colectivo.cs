@@ -125,18 +125,20 @@ public class ColectivoTests
 
         var primero = colectivo.PagarCon(tarjeta, fecha);
         var segundo = colectivo.PagarCon(tarjeta, fecha);
+        var tercero = colectivo.PagarCon(tarjeta, fecha);
 
         Assert.That(primero.Monto, Is.EqualTo(0m));
         Assert.That(segundo.Monto, Is.EqualTo(0m));
+        Assert.That(tercero.Monto, Is.EqualTo(0m));
         Assert.That(tarjeta.Saldo, Is.EqualTo(0m));
-        Assert.That(_db.Boletos.Count(), Is.EqualTo(2));
+        Assert.That(_db.Boletos.Count(), Is.EqualTo(3));
     }
 
     [Test]
-    public void PagarCon_FranquiciaCompleta_NoHaceMasDeDosViajesGratisPorDia()
+    public void PagarCon_BoletoGratuitoEstudiantil_NoHaceMasDeDosViajesGratisPorDia()
     {
         var fecha = FechaFranjaValida();
-        var tipo = TarjetaTipo.Crear("Franquicia completa", 0m);
+        var tipo = TarjetaTipo.Crear("Boleto gratuito estudiantil", 0m);
         var tarjeta = Tarjeta.Crear(tipo.Id);
         tarjeta.Cargar(2000);
         var colectivo = Colectivo.Crear(101);
@@ -150,10 +152,10 @@ public class ColectivoTests
     }
 
     [Test]
-    public void PagarCon_FranquiciaCompleta_DelTercerViajeCobraPrecioCompleto()
+    public void PagarCon_BoletoGratuitoEstudiantil_DelTercerViajeCobraPrecioCompleto()
     {
         var fecha = FechaFranjaValida();
-        var tipo = TarjetaTipo.Crear("Franquicia completa", 0m);
+        var tipo = TarjetaTipo.Crear("Boleto gratuito estudiantil", 0m);
         var tarjeta = Tarjeta.Crear(tipo.Id);
         tarjeta.Cargar(2000);
         var colectivo = Colectivo.Crear(101);
@@ -389,10 +391,10 @@ public class ColectivoTests
     }
 
     [Test]
-    public void PagarCon_FranquiciaCompletaInterurbana_DosViajesGratisTerceroTarifaInterurbana()
+    public void PagarCon_BoletoGratuitoEstudiantilInterurbano_DosViajesGratisTerceroTarifaInterurbana()
     {
         var fecha = FechaFranjaValida();
-        var tipo = TarjetaTipo.Crear("Franquicia completa", 0m);
+        var tipo = TarjetaTipo.Crear("Boleto gratuito estudiantil", 0m);
         var tarjeta = Tarjeta.Crear(tipo.Id);
         tarjeta.Cargar(5000);
         var colectivo = Colectivo.CrearInterurbano(504);
@@ -680,7 +682,7 @@ public class ColectivoTests
         RegistrarViajes(tarjeta, colectivo, 78, new DateTime(2026, 6, 1, 8, 0, 0));
         RegistrarViajes(tarjeta, colectivo, 2, hoy.AddMinutes(-10));
 
-        Assert.That(tarjeta.CalcularPrecioPasaje(Colectivo.Tarifa, hoy), Is.EqualTo(Colectivo.Tarifa));
+        Assert.That(tarjeta.CalcularPrecioPasaje(Colectivo.Tarifa, hoy), Is.EqualTo(0m));
     }
 
     private static void RegistrarViajes(Tarjeta tarjeta, Colectivo colectivo, int cantidad, DateTime fecha)

@@ -58,7 +58,7 @@ public class Tarjeta
             ?? Contexto.Db.TarjetasTipo.Find(TarjetaTipoId)
             ?? throw new ArgumentException("La tarjeta no tiene un tipo.");
 
-        if (tipo.Nombre == "Franquicia completa")
+        if (tipo.Nombre == "Boleto gratuito estudiantil")
         {
             var viajesHoy = ViajesEnElDia(fecha);
 
