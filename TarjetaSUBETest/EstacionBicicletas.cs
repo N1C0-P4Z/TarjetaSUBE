@@ -89,4 +89,52 @@ public class EstacionBicicletasTests
         Assert.That(alquiler.Monto, Is.EqualTo(EstacionBicicletas.TarifaDiaria));
         Assert.That(tarjeta.Saldo, Is.EqualTo(3000m - EstacionBicicletas.TarifaDiaria));
     }
+
+    [Test]
+    public void Retirar_LanzaExcepcion_CuandoSaldoEsCero()
+    {
+        var tarjeta = Tarjeta.Crear();
+        var estacion = EstacionBicicletas.Crear();
+        var fecha = new DateTime(2026, 10, 21, 10, 0, 0);
+
+        Assert.That(
+            () => estacion.Retirar(tarjeta, fecha),
+            Throws.TypeOf<ArgumentException>()
+                .With.Message.EqualTo("Saldo insuficiente."));
+        Assert.That(tarjeta.Saldo, Is.EqualTo(0m));
+        Assert.That(_db.Alquileres.Count(), Is.EqualTo(0));
+    }
+
+    [Test]
+    public void Retirar_LanzaExcepcion_CuandoSaldoEs400()
+    {
+        var tarjeta = Tarjeta.Crear();
+        tarjeta.Saldo = 400m;
+        _db.SaveChanges();
+        var estacion = EstacionBicicletas.Crear();
+        var fecha = new DateTime(2026, 10, 21, 10, 0, 0);
+
+        Assert.That(
+            () => estacion.Retirar(tarjeta, fecha),
+            Throws.TypeOf<ArgumentException>()
+                .With.Message.EqualTo("Saldo insuficiente."));
+        Assert.That(tarjeta.Saldo, Is.EqualTo(400m));
+        Assert.That(_db.Alquileres.Count(), Is.EqualTo(0));
+    }
+
+    [Test]
+    public void Retirar_ConSaldo500_DescuentaTarifaDiariaYGeneraUnAlquiler()
+    {
+        var tarjeta = Tarjeta.Crear();
+        tarjeta.Saldo = 500m;
+        _db.SaveChanges();
+        var estacion = EstacionBicicletas.Crear();
+        var fecha = new DateTime(2026, 10, 21, 10, 0, 0);
+
+        var alquiler = estacion.Retirar(tarjeta, fecha);
+
+        Assert.That(alquiler.Monto, Is.EqualTo(EstacionBicicletas.TarifaDiaria));
+        Assert.That(tarjeta.Saldo, Is.EqualTo(500m - EstacionBicicletas.TarifaDiaria));
+        Assert.That(_db.Alquileres.Count(), Is.EqualTo(1));
+    }
 }
