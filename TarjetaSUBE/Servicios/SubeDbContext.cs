@@ -12,6 +12,8 @@ public class SubeDbContext : DbContext
     public DbSet<TarjetaTipo> TarjetasTipo => Set<TarjetaTipo>();
     public DbSet<Colectivo> Colectivos => Set<Colectivo>();
     public DbSet<Boleto> Boletos => Set<Boleto>();
+    public DbSet<EstacionBicicletas> EstacionesBicicletas => Set<EstacionBicicletas>();
+    public DbSet<Alquiler> Alquileres => Set<Alquiler>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -49,5 +51,19 @@ public class SubeDbContext : DbContext
         modelBuilder.Entity<Boleto>()
             .Property(b => b.SaldoRestante)
             .HasPrecision(18, 2);
+
+        modelBuilder.Entity<Alquiler>()
+            .Property(a => a.Monto)
+            .HasPrecision(18, 2);
+
+        modelBuilder.Entity<Alquiler>()
+            .HasOne(a => a.Tarjeta)
+            .WithMany()
+            .HasForeignKey(a => a.TarjetaId);
+
+        modelBuilder.Entity<Alquiler>()
+            .HasOne(a => a.EstacionBicicletas)
+            .WithMany(e => e.Alquileres)
+            .HasForeignKey(a => a.EstacionBicicletasId);
     }
 }
