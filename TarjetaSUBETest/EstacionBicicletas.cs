@@ -110,6 +110,65 @@ public class EstacionBicicletasTests
         Assert.That(tarjeta.MultaPendiente, Is.EqualTo(0m));
     }
 
+    [Test]
+    public void Devolver_DosExcesosElMismoDia_DejaDosMultasPendientes()
+    {
+        var tarjeta = Tarjeta.Crear();
+        tarjeta.Cargar(10000);
+        var estacion = EstacionBicicletas.Crear();
+        var dia = new DateTime(2026, 10, 21, 10, 0, 0);
+        var primero = estacion.Retirar(tarjeta, dia);
+        var segundo = estacion.Retirar(tarjeta, dia.AddMinutes(10));
+        var saldoTrasRetiros = tarjeta.Saldo;
+
+        estacion.Devolver(primero, dia.AddHours(1).AddMinutes(1));
+        estacion.Devolver(segundo, dia.AddMinutes(10).AddHours(1).AddMinutes(1));
+
+        Assert.That(tarjeta.MultaPendiente, Is.EqualTo(EstacionBicicletas.MultaPorExceso * 2));
+        Assert.That(tarjeta.Saldo, Is.EqualTo(saldoTrasRetiros));
+    }
+
+    [Test]
+    public void Retirar_ConVariasMultasAcumuladas_CobraTarifaMasLasMultas()
+    {
+        var tarjeta = Tarjeta.Crear();
+        tarjeta.Cargar(10000);
+        var estacion = EstacionBicicletas.Crear();
+        var dia = new DateTime(2026, 10, 21, 10, 0, 0);
+        var primero = estacion.Retirar(tarjeta, dia);
+        var segundo = estacion.Retirar(tarjeta, dia.AddMinutes(10));
+        estacion.Devolver(primero, dia.AddHours(1).AddMinutes(1));
+        estacion.Devolver(segundo, dia.AddMinutes(10).AddHours(1).AddMinutes(1));
+        var saldoAntes = tarjeta.Saldo;
+        var total = EstacionBicicletas.TarifaDiaria + EstacionBicicletas.MultaPorExceso * 2;
+
+        var siguiente = estacion.Retirar(tarjeta, dia.AddHours(4));
+
+        Assert.That(siguiente.Monto, Is.EqualTo(total));
+        Assert.That(tarjeta.Saldo, Is.EqualTo(saldoAntes - total));
+        Assert.That(tarjeta.MultaPendiente, Is.EqualTo(0m));
+    }
+
+    [Test]
+    public void Retirar_ConMultaPendiente_LanzaExcepcion_CuandoElSaldoNoCubre()
+    {
+        var tarjeta = Tarjeta.Crear();
+        tarjeta.Cargar(3000);
+        var estacion = EstacionBicicletas.Crear();
+        var inicio = new DateTime(2026, 10, 21, 10, 0, 0);
+        var alquiler = estacion.Retirar(tarjeta, inicio);
+        estacion.Devolver(alquiler, inicio.AddHours(1).AddMinutes(1));
+        var saldoAntes = tarjeta.Saldo;
+
+        Assert.That(
+            () => estacion.Retirar(tarjeta, inicio.AddHours(3)),
+            Throws.TypeOf<ArgumentException>()
+                .With.Message.EqualTo("Saldo insuficiente."));
+        Assert.That(tarjeta.Saldo, Is.EqualTo(saldoAntes));
+        Assert.That(tarjeta.MultaPendiente, Is.EqualTo(EstacionBicicletas.MultaPorExceso));
+        Assert.That(_db.Alquileres.Count(), Is.EqualTo(1));
+    }
+
     [TestCase("Medio boleto estudiantil", 0.5)]
     [TestCase("Boleto gratuito estudiantil", 0)]
     [TestCase("Franquicia completa", 0)]

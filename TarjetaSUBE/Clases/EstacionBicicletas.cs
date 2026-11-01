@@ -59,7 +59,7 @@ public class EstacionBicicletas
                 ?? Contexto.Db.Tarjetas.Find(alquiler.TarjetaId)
                 ?? throw new ArgumentException("La tarjeta no existe.");
 
-            tarjeta.MultaPendiente = MultaPorExceso;
+            tarjeta.MultaPendiente += MultaPorExceso;
         }
 
         Contexto.Db.SaveChanges();
