@@ -253,6 +253,91 @@ public class ColectivoTests
     }
 
     [Test]
+    public void PagarCon_MedioBoleto_TrasbordoAntesDeCincoMinutosNoSeCobra()
+    {
+        var salida = new DateTime(2026, 10, 26, 10, 0, 0);
+        var tipo = TarjetaTipo.Crear("Medio boleto estudiantil", 0.5m);
+        var tarjeta = Tarjeta.Crear(tipo.Id);
+        tarjeta.Cargar(5000);
+
+        var boleto = Colectivo.Crear(101).PagarCon(tarjeta, salida);
+        var trasbordo = Colectivo.Crear(120).PagarCon(tarjeta, salida.AddMinutes(3));
+
+        Assert.That(boleto!.EsTrasbordo, Is.False);
+        Assert.That(boleto.Monto, Is.EqualTo(Colectivo.Tarifa / 2));
+        Assert.That(trasbordo!.EsTrasbordo, Is.True);
+        Assert.That(trasbordo.Monto, Is.EqualTo(0m));
+        Assert.That(tarjeta.Saldo, Is.EqualTo(5000m - Colectivo.Tarifa / 2));
+    }
+
+    [Test]
+    public void PagarCon_MedioBoleto_ViajePagoSiguePidiendoCincoMinutos()
+    {
+        var salida = new DateTime(2026, 10, 26, 10, 0, 0);
+        var tipo = TarjetaTipo.Crear("Medio boleto estudiantil", 0.5m);
+        var tarjeta = Tarjeta.Crear(tipo.Id);
+        tarjeta.Cargar(5000);
+        var linea = Colectivo.Crear(101);
+
+        linea.PagarCon(tarjeta, salida);
+        Colectivo.Crear(120).PagarCon(tarjeta, salida.AddMinutes(3));
+        var saldo = tarjeta.Saldo;
+
+        Assert.That(
+            () => linea.PagarCon(tarjeta, salida.AddMinutes(6)),
+            Throws.TypeOf<ArgumentException>()
+                .With.Message.EqualTo("Deben pasar 5 minutos entre viajes con medio boleto."));
+        Assert.That(tarjeta.Saldo, Is.EqualTo(saldo));
+        Assert.That(_db.Boletos.Count(), Is.EqualTo(2));
+    }
+
+    [Test]
+    public void PagarCon_MedioBoleto_TrasbordoNoGastaElCupoDelDia()
+    {
+        var salida = new DateTime(2026, 10, 26, 10, 0, 0);
+        var tipo = TarjetaTipo.Crear("Medio boleto estudiantil", 0.5m);
+        var tarjeta = Tarjeta.Crear(tipo.Id);
+        tarjeta.Cargar(10000);
+        var linea = Colectivo.Crear(101);
+
+        var primero = linea.PagarCon(tarjeta, salida);
+        var trasbordo = Colectivo.Crear(120).PagarCon(tarjeta, salida.AddMinutes(3));
+        var segundo = linea.PagarCon(tarjeta, salida.AddMinutes(10));
+        var tercero = linea.PagarCon(tarjeta, salida.AddMinutes(20));
+
+        Assert.That(primero!.Monto, Is.EqualTo(Colectivo.Tarifa / 2));
+        Assert.That(trasbordo!.EsTrasbordo, Is.True);
+        Assert.That(trasbordo.Monto, Is.EqualTo(0m));
+        Assert.That(segundo!.EsTrasbordo, Is.False);
+        Assert.That(segundo.Monto, Is.EqualTo(Colectivo.Tarifa / 2));
+        Assert.That(tercero!.Monto, Is.EqualTo(Colectivo.Tarifa));
+    }
+
+    [Test]
+    public void PagarCon_Gratuito_TrasbordoNoGastaLosViajesGratis()
+    {
+        var salida = new DateTime(2026, 10, 26, 10, 0, 0);
+        var tipo = TarjetaTipo.Crear("Boleto gratuito estudiantil", 0m);
+        var tarjeta = Tarjeta.Crear(tipo.Id);
+        tarjeta.Cargar(5000);
+        var linea = Colectivo.Crear(101);
+
+        var primero = linea.PagarCon(tarjeta, salida);
+        var trasbordo = Colectivo.Crear(120).PagarCon(tarjeta, salida.AddMinutes(20));
+        var segundo = linea.PagarCon(tarjeta, salida.AddMinutes(40));
+        var tercero = linea.PagarCon(tarjeta, salida.AddMinutes(50));
+
+        Assert.That(primero!.Monto, Is.EqualTo(0m));
+        Assert.That(primero.EsTrasbordo, Is.False);
+        Assert.That(trasbordo!.EsTrasbordo, Is.True);
+        Assert.That(trasbordo.Monto, Is.EqualTo(0m));
+        Assert.That(segundo!.EsTrasbordo, Is.False);
+        Assert.That(segundo.Monto, Is.EqualTo(0m));
+        Assert.That(tercero!.Monto, Is.EqualTo(Colectivo.Tarifa));
+        Assert.That(tarjeta.Saldo, Is.EqualTo(5000m - Colectivo.Tarifa));
+    }
+
+    [Test]
     public void PagarCon_PermiteViajarQuedandoEnNegativo()
     {
         var tarjeta = Tarjeta.Crear();
@@ -683,6 +768,30 @@ public class ColectivoTests
         RegistrarViajes(tarjeta, colectivo, 2, hoy.AddMinutes(-10));
 
         Assert.That(tarjeta.CalcularPrecioPasaje(Colectivo.Tarifa, hoy), Is.EqualTo(0m));
+    }
+
+    [Test]
+    public void PagarCon_UsoFrecuente_TrasbordoNoAdelantaElDescuento()
+    {
+        var tarjeta = Tarjeta.Crear();
+        tarjeta.Cargar(5000);
+        var colectivo = Colectivo.Crear(101);
+        var mes = new DateTime(2026, 10, 26, 8, 0, 0);
+        RegistrarViajes(tarjeta, colectivo, 28, mes);
+        Contexto.Db.Boletos.Add(new Boleto
+        {
+            Fecha = mes.AddHours(1),
+            Monto = 0m,
+            EsTrasbordo = true,
+            Tarjeta = tarjeta,
+            Colectivo = Colectivo.Crear(120),
+        });
+        Contexto.Db.SaveChanges();
+
+        var boleto = colectivo.PagarCon(tarjeta, mes.AddHours(2));
+
+        Assert.That(boleto!.EsTrasbordo, Is.False);
+        Assert.That(boleto.Monto, Is.EqualTo(Colectivo.Tarifa));
     }
 
     private static void RegistrarViajes(Tarjeta tarjeta, Colectivo colectivo, int cantidad, DateTime fecha)

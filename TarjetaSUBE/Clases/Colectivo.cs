@@ -60,8 +60,9 @@ public class Colectivo
             ?? throw new ArgumentException("La tarjeta no existe.");
 
         tarjetaGuardada.ValidarFranjaFranquicia(fechaViaje);
-        tarjetaGuardada.ValidarIntervaloMedioBoleto(fechaViaje);
         var esTrasbordo = tarjetaGuardada.CorrespondeTrasbordo(fechaViaje, Linea);
+        if (!esTrasbordo)
+            tarjetaGuardada.ValidarIntervaloMedioBoleto(fechaViaje);
         var monto = esTrasbordo
             ? 0m
             : tarjetaGuardada.CalcularPrecioPasaje(TarifaVigente(), fechaViaje);

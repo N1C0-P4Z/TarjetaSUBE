@@ -207,7 +207,7 @@ public class Tarjeta
         var hasta = desde.AddDays(1);
 
         return Contexto.Db.Boletos.Count(b =>
-            b.Tarjeta!.Id == Id && b.Fecha >= desde && b.Fecha < hasta);
+            b.Tarjeta!.Id == Id && b.Fecha >= desde && b.Fecha < hasta && !b.EsTrasbordo);
     }
 
     private int ViajesEnElMes(DateTime fecha)
@@ -216,7 +216,7 @@ public class Tarjeta
         var hasta = desde.AddMonths(1);
 
         return Contexto.Db.Boletos.Count(b =>
-            b.Tarjeta!.Id == Id && b.Fecha >= desde && b.Fecha < hasta);
+            b.Tarjeta!.Id == Id && b.Fecha >= desde && b.Fecha < hasta && !b.EsTrasbordo);
     }
 
     private void AcreditarSaldoPendiente()
