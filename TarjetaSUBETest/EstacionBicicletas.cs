@@ -233,7 +233,7 @@ public class EstacionBicicletasTests
     }
 
     [Test]
-    public void Retirar_ConSaldo500_DescuentaTarifaDiariaYGeneraUnAlquiler()
+    public void Retirar_ConSaldo500_RechazaYNoMueveElSaldo()
     {
         var tarjeta = Tarjeta.Crear();
         tarjeta.Saldo = 500m;
@@ -241,10 +241,48 @@ public class EstacionBicicletasTests
         var estacion = EstacionBicicletas.Crear();
         var fecha = new DateTime(2026, 10, 21, 10, 0, 0);
 
+        Assert.That(
+            () => estacion.Retirar(tarjeta, fecha),
+            Throws.TypeOf<ArgumentException>()
+                .With.Message.EqualTo("Saldo insuficiente."));
+        Assert.That(tarjeta.Saldo, Is.EqualTo(500m));
+        Assert.That(_db.Alquileres.Count(), Is.EqualTo(0));
+    }
+
+    [Test]
+    public void Retirar_ConSaldoJusto_DescuentaLaTarifaYDejaSaldoEnCero()
+    {
+        var tarjeta = Tarjeta.Crear();
+        tarjeta.Saldo = EstacionBicicletas.TarifaDiaria;
+        _db.SaveChanges();
+        var estacion = EstacionBicicletas.Crear();
+        var fecha = new DateTime(2026, 10, 21, 10, 0, 0);
+
         var alquiler = estacion.Retirar(tarjeta, fecha);
 
         Assert.That(alquiler.Monto, Is.EqualTo(EstacionBicicletas.TarifaDiaria));
-        Assert.That(tarjeta.Saldo, Is.EqualTo(500m - EstacionBicicletas.TarifaDiaria));
+        Assert.That(tarjeta.Saldo, Is.EqualTo(0m));
         Assert.That(_db.Alquileres.Count(), Is.EqualTo(1));
+    }
+
+    [Test]
+    public void Devolver_DosVeces_NoSumaOtraMulta()
+    {
+        var tarjeta = Tarjeta.Crear();
+        tarjeta.Cargar(3000);
+        var estacion = EstacionBicicletas.Crear();
+        var inicio = new DateTime(2026, 10, 21, 10, 0, 0);
+        var alquiler = estacion.Retirar(tarjeta, inicio);
+        var devolucion = inicio.AddHours(1).AddMinutes(1);
+
+        estacion.Devolver(alquiler, devolucion);
+
+        Assert.That(
+            () => estacion.Devolver(alquiler, devolucion.AddHours(2)),
+            Throws.TypeOf<ArgumentException>()
+                .With.Message.EqualTo("La bicicleta ya fue devuelta."));
+        Assert.That(tarjeta.MultaPendiente, Is.EqualTo(EstacionBicicletas.MultaPorExceso));
+        Assert.That(alquiler.Fin, Is.EqualTo(devolucion));
+        Assert.That(tarjeta.Saldo, Is.EqualTo(3000m - EstacionBicicletas.TarifaDiaria));
     }
 }

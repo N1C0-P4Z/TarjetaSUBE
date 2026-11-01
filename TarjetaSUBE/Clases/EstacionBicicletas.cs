@@ -26,6 +26,9 @@ public class EstacionBicicletas
             ?? throw new ArgumentException("La tarjeta no existe.");
 
         var monto = TarifaDiaria + tarjetaGuardada.MultaPendiente;
+        if (tarjetaGuardada.Saldo < monto)
+            throw new ArgumentException("Saldo insuficiente.");
+
         tarjetaGuardada.Descontar(monto);
         tarjetaGuardada.MultaPendiente = 0;
 
@@ -48,6 +51,9 @@ public class EstacionBicicletas
 
     public void Devolver(Alquiler alquiler, DateTime fecha)
     {
+        if (alquiler.Fin is not null)
+            throw new ArgumentException("La bicicleta ya fue devuelta.");
+
         if (fecha < alquiler.Inicio)
             throw new ArgumentException("La fecha de devolucion no puede ser anterior al inicio.");
 
