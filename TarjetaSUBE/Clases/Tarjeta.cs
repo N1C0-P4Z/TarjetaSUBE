@@ -15,6 +15,7 @@ public class Tarjeta
     public int Id { get; set; }
     public decimal Saldo { get; set; }
     public decimal SaldoPendiente { get; set; }
+    public decimal MultaPendiente { get; set; }
     public int TarjetaTipoId { get; set; }
     public TarjetaTipo? TarjetaTipo { get; set; }
     public List<Boleto> Boletos { get; set; } = new();
