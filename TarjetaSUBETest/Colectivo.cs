@@ -360,15 +360,16 @@ public class ColectivoTests
     [Test]
     public void PagarCon_MedioBoletoInterurbanoCobraLaMitad()
     {
+        var fecha = FechaFranjaValida();
         var tipo = TarjetaTipo.Crear("Medio boleto estudiantil", 0.5m);
         var tarjeta = Tarjeta.Crear(tipo.Id);
         tarjeta.Cargar(5000);
         var colectivo = Colectivo.CrearInterurbano(502);
 
-        var primero = colectivo.PagarCon(tarjeta)!;
-        primero.Fecha = DateTime.Now.AddMinutes(-5);
+        var primero = colectivo.PagarCon(tarjeta, fecha)!;
+        primero.Fecha = fecha.AddMinutes(-5);
         _db.SaveChanges();
-        var segundo = colectivo.PagarCon(tarjeta)!;
+        var segundo = colectivo.PagarCon(tarjeta, fecha)!;
 
         Assert.That(primero.Monto, Is.EqualTo(Colectivo.TarifaInterurbana / 2));
         Assert.That(segundo.Monto, Is.EqualTo(Colectivo.TarifaInterurbana / 2));
@@ -381,7 +382,7 @@ public class ColectivoTests
         var tarjeta = Tarjeta.Crear(tipo.Id);
         var colectivo = Colectivo.CrearInterurbano(503);
 
-        var boleto = colectivo.PagarCon(tarjeta)!;
+        var boleto = colectivo.PagarCon(tarjeta, FechaFranjaValida())!;
 
         Assert.That(boleto.Monto, Is.EqualTo(0m));
         Assert.That(tarjeta.Saldo, Is.EqualTo(0m));
@@ -390,14 +391,15 @@ public class ColectivoTests
     [Test]
     public void PagarCon_FranquiciaCompletaInterurbana_DosViajesGratisTerceroTarifaInterurbana()
     {
+        var fecha = FechaFranjaValida();
         var tipo = TarjetaTipo.Crear("Franquicia completa", 0m);
         var tarjeta = Tarjeta.Crear(tipo.Id);
         tarjeta.Cargar(5000);
         var colectivo = Colectivo.CrearInterurbano(504);
 
-        var primero = colectivo.PagarCon(tarjeta)!;
-        var segundo = colectivo.PagarCon(tarjeta)!;
-        var tercero = colectivo.PagarCon(tarjeta)!;
+        var primero = colectivo.PagarCon(tarjeta, fecha)!;
+        var segundo = colectivo.PagarCon(tarjeta, fecha)!;
+        var tercero = colectivo.PagarCon(tarjeta, fecha)!;
 
         Assert.That(primero.Monto, Is.EqualTo(0m));
         Assert.That(segundo.Monto, Is.EqualTo(0m));
