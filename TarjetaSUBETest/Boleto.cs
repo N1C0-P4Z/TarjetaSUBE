@@ -134,4 +134,41 @@ public class BoletoTests
         Assert.That(boleto.Saldo, Is.EqualTo(200m));
         Assert.That(boleto.SaldoRestante, Is.EqualTo(200m - Colectivo.Tarifa));
     }
+
+    [Test]
+    public void DatosViaje_SaldoYaNegativo_TotalAbonadoSumaLaDeudaYElSaldoSigueNegativo()
+    {
+        var fecha = FechaFranjaValida();
+        var tipo = TarjetaTipo.Crear("Medio boleto estudiantil", 0.5m);
+        var tarjeta = Tarjeta.Crear(tipo.Id);
+        tarjeta.Saldo = -150m;
+        _db.SaveChanges();
+        var colectivo = Colectivo.Crear(101);
+
+        var boleto = colectivo.PagarCon(tarjeta, fecha)!;
+        var pasaje = Colectivo.Tarifa / 2;
+
+        Assert.That(boleto.Monto, Is.EqualTo(pasaje));
+        Assert.That(boleto.TotalAbonado, Is.EqualTo(pasaje + 150m));
+        Assert.That(boleto.Saldo, Is.EqualTo(-150m));
+        Assert.That(boleto.SaldoRestante, Is.EqualTo(-150m - pasaje));
+        Assert.That(tarjeta.Saldo, Is.EqualTo(-150m - pasaje));
+    }
+
+    [Test]
+    public void DatosViaje_FranquiciaCompletaConSaldoNegativo_NoSumaLaDeuda()
+    {
+        var fecha = FechaFranjaValida();
+        var tipo = TarjetaTipo.Crear("Franquicia completa", 0m);
+        var tarjeta = Tarjeta.Crear(tipo.Id);
+        tarjeta.Saldo = -150m;
+        _db.SaveChanges();
+        var colectivo = Colectivo.Crear(101);
+
+        var boleto = colectivo.PagarCon(tarjeta, fecha)!;
+
+        Assert.That(boleto.TotalAbonado, Is.EqualTo(0m));
+        Assert.That(boleto.SaldoRestante, Is.EqualTo(-150m));
+        Assert.That(tarjeta.Saldo, Is.EqualTo(-150m));
+    }
 }
