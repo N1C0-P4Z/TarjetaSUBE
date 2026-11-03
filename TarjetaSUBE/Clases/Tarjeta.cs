@@ -58,28 +58,10 @@ public class Tarjeta
             ?? Contexto.Db.TarjetasTipo.Find(TarjetaTipoId)
             ?? throw new ArgumentException("La tarjeta no tiene un tipo.");
 
-        if (tipo.Nombre == "Boleto gratuito estudiantil")
-        {
-            var viajesHoy = ViajesEnElDia(fecha);
+        var viajesEnElDia = ViajesEnElDia(fecha);
+        var viajesEnElMes = ViajesEnElMes(fecha);
 
-            if (viajesHoy < 2)
-                return 0m;
-
-            return tarifaBasica;
-        }
-
-        if (tipo.Nombre == "Medio boleto estudiantil")
-        {
-            if (ViajesEnElDia(fecha) >= 2)
-                return tarifaBasica;
-
-            return tipo.CalcularPrecio(tarifaBasica);
-        }
-
-        if (tipo.Nombre == "Normal")
-            return PrecioConUsoFrecuente(tarifaBasica, fecha);
-
-        return tipo.CalcularPrecio(tarifaBasica);
+        return tipo.CalcularPrecio(tarifaBasica, viajesEnElDia, viajesEnElMes, fecha);
     }
 
 
@@ -159,7 +141,7 @@ public class Tarjeta
         var tipo = TarjetaTipo
             ?? Contexto.Db.TarjetasTipo.Find(TarjetaTipoId);
 
-        if (tipo is null || tipo.Nombre == "Normal")
+        if (tipo is null || !tipo.TieneFranjaHoraria)
             return;
 
         var dia = fecha.DayOfWeek;
@@ -176,7 +158,7 @@ public class Tarjeta
         var tipo = TarjetaTipo
             ?? Contexto.Db.TarjetasTipo.Find(TarjetaTipoId);
 
-        if (tipo?.Nombre != "Medio boleto estudiantil")
+        if (tipo is null || tipo.MinutosEntreViajes <= 0)
             return;
 
         var ultimo = Contexto.Db.Boletos
@@ -184,21 +166,8 @@ public class Tarjeta
             .OrderByDescending(b => b.Fecha)
             .FirstOrDefault();
 
-        if (ultimo is not null && fecha - ultimo.Fecha < TimeSpan.FromMinutes(5))
+        if (ultimo is not null && fecha - ultimo.Fecha < TimeSpan.FromMinutes(tipo.MinutosEntreViajes))
             throw new ArgumentException("Deben pasar 5 minutos entre viajes con medio boleto.");
-    }
-
-    private decimal PrecioConUsoFrecuente(decimal tarifaBasica, DateTime fecha)
-    {
-        var numeroDeViaje = ViajesEnElMes(fecha) + 1;
-
-        if (numeroDeViaje >= 80)
-            return tarifaBasica * 0.75m;
-
-        if (numeroDeViaje >= 30)
-            return tarifaBasica * 0.80m;
-
-        return tarifaBasica;
     }
 
     private int ViajesEnElDia(DateTime fecha)

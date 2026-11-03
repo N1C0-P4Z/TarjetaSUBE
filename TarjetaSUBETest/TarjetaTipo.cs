@@ -77,4 +77,27 @@ public class TarjetaTipoTests
 
         Assert.That(tipo.CalcularPrecio(Colectivo.Tarifa), Is.EqualTo((decimal)precioEsperado));
     }
+
+    [TestCase(0, 0)]
+    [TestCase(1, 2150)]
+    public void CalcularPrecio_CupoNuevoSinClaseNueva(int viajesEnElDia, int precioEsperado)
+    {
+        var tipo = TarjetaTipo.Crear("Jubilado municipal", 0m, 1, false, false, 0);
+
+        Assert.That(
+            tipo.CalcularPrecio(Colectivo.Tarifa, viajesEnElDia, 0, new DateTime(2026, 10, 26, 10, 0, 0)),
+            Is.EqualTo((decimal)precioEsperado));
+    }
+
+    [TestCase(28, 1.0)]
+    [TestCase(29, 0.80)]
+    [TestCase(79, 0.75)]
+    public void CalcularPrecio_UsoFrecuenteAplicaTramosPorNumeroDeViaje(int viajesEnElMes, double factor)
+    {
+        var normal = TarjetaTipo.Crear("Normal", 1m);
+
+        Assert.That(
+            normal.CalcularPrecio(Colectivo.Tarifa, 0, viajesEnElMes, new DateTime(2026, 10, 26, 10, 0, 0)),
+            Is.EqualTo(Colectivo.Tarifa * (decimal)factor));
+    }
 }
