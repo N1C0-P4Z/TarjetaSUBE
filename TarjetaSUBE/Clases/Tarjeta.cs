@@ -167,7 +167,7 @@ public class Tarjeta
             .FirstOrDefault();
 
         if (ultimo is not null && fecha - ultimo.Fecha < TimeSpan.FromMinutes(tipo.MinutosEntreViajes))
-            throw new ArgumentException("Deben pasar 5 minutos entre viajes con medio boleto.");
+            throw new ArgumentException("Deben pasar " + tipo.MinutosEntreViajes + " minutos entre viajes con medio boleto.");
     }
 
     private int ViajesEnElDia(DateTime fecha)
