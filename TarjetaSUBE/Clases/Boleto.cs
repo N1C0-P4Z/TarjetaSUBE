@@ -18,8 +18,8 @@ public class Boleto
     public string TipoTarjeta => Tarjeta?.TarjetaTipo?.Nombre ?? string.Empty;
     public int Linea => Colectivo?.Linea ?? 0;
     public int IdTarjeta => Tarjeta?.Id ?? TarjetaId;
-    public decimal TotalAbonado => Saldo < 0 && Monto > TarjetaSUBE.Colectivo.Tarifa
-        ? Monto
+    public decimal TotalAbonado => Saldo < 0 && Monto > 0
+        ? Monto + Math.Abs(Saldo)
         : Monto;
 
     public static List<Boleto> Listar()

@@ -15,6 +15,7 @@ public class Tarjeta
     public int Id { get; set; }
     public decimal Saldo { get; set; }
     public decimal SaldoPendiente { get; set; }
+    public decimal MultaPendiente { get; set; }
     public int TarjetaTipoId { get; set; }
     public TarjetaTipo? TarjetaTipo { get; set; }
     public List<Boleto> Boletos { get; set; } = new();
@@ -57,28 +58,10 @@ public class Tarjeta
             ?? Contexto.Db.TarjetasTipo.Find(TarjetaTipoId)
             ?? throw new ArgumentException("La tarjeta no tiene un tipo.");
 
-        if (tipo.Nombre == "Franquicia completa")
-        {
-            var viajesHoy = ViajesEnElDia(fecha);
+        var viajesEnElDia = ViajesEnElDia(fecha);
+        var viajesEnElMes = ViajesEnElMes(fecha);
 
-            if (viajesHoy < 2)
-                return 0m;
-
-            return tarifaBasica;
-        }
-
-        if (tipo.Nombre == "Medio boleto estudiantil")
-        {
-            if (ViajesEnElDia(fecha) >= 2)
-                return tarifaBasica;
-
-            return tipo.CalcularPrecio(tarifaBasica);
-        }
-
-        if (tipo.Nombre == "Normal")
-            return PrecioConUsoFrecuente(tarifaBasica, fecha);
-
-        return tipo.CalcularPrecio(tarifaBasica);
+        return tipo.CalcularPrecio(tarifaBasica, viajesEnElDia, viajesEnElMes, fecha);
     }
 
 
@@ -158,7 +141,7 @@ public class Tarjeta
         var tipo = TarjetaTipo
             ?? Contexto.Db.TarjetasTipo.Find(TarjetaTipoId);
 
-        if (tipo is null || tipo.Nombre == "Normal")
+        if (tipo is null || !tipo.TieneFranjaHoraria)
             return;
 
         var dia = fecha.DayOfWeek;
@@ -175,7 +158,7 @@ public class Tarjeta
         var tipo = TarjetaTipo
             ?? Contexto.Db.TarjetasTipo.Find(TarjetaTipoId);
 
-        if (tipo?.Nombre != "Medio boleto estudiantil")
+        if (tipo is null || tipo.MinutosEntreViajes <= 0)
             return;
 
         var ultimo = Contexto.Db.Boletos
@@ -183,21 +166,8 @@ public class Tarjeta
             .OrderByDescending(b => b.Fecha)
             .FirstOrDefault();
 
-        if (ultimo is not null && fecha - ultimo.Fecha < TimeSpan.FromMinutes(5))
-            throw new ArgumentException("Deben pasar 5 minutos entre viajes con medio boleto.");
-    }
-
-    private decimal PrecioConUsoFrecuente(decimal tarifaBasica, DateTime fecha)
-    {
-        var numeroDeViaje = ViajesEnElMes(fecha) + 1;
-
-        if (numeroDeViaje >= 80)
-            return tarifaBasica * 0.75m;
-
-        if (numeroDeViaje >= 30)
-            return tarifaBasica * 0.80m;
-
-        return tarifaBasica;
+        if (ultimo is not null && fecha - ultimo.Fecha < TimeSpan.FromMinutes(tipo.MinutosEntreViajes))
+            throw new ArgumentException("Deben pasar " + tipo.MinutosEntreViajes + " minutos entre viajes con medio boleto.");
     }
 
     private int ViajesEnElDia(DateTime fecha)
@@ -206,7 +176,7 @@ public class Tarjeta
         var hasta = desde.AddDays(1);
 
         return Contexto.Db.Boletos.Count(b =>
-            b.Tarjeta!.Id == Id && b.Fecha >= desde && b.Fecha < hasta);
+            b.Tarjeta!.Id == Id && b.Fecha >= desde && b.Fecha < hasta && !b.EsTrasbordo);
     }
 
     private int ViajesEnElMes(DateTime fecha)
@@ -215,7 +185,7 @@ public class Tarjeta
         var hasta = desde.AddMonths(1);
 
         return Contexto.Db.Boletos.Count(b =>
-            b.Tarjeta!.Id == Id && b.Fecha >= desde && b.Fecha < hasta);
+            b.Tarjeta!.Id == Id && b.Fecha >= desde && b.Fecha < hasta && !b.EsTrasbordo);
     }
 
     private void AcreditarSaldoPendiente()
